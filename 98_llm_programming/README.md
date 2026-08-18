@@ -16,6 +16,7 @@
 
 - [Agent First：软件工程的下一个范式转移](Agent_First.md) - 梳理编程范式的演变历史，探讨 Agent First 的核心理念与实战指南。
 - [驾驭工程](Harness_Engineering.md) - 深度解析如何构建驾驭系统，提升 AI 编程助手的可控性与效能。
+- [DSH 插件敏捷开发实战](../08_agentic_system/dsh_plugin/dsh-plugin-agile-development.md) - 把驾驭工程落到 DeepSeek Harness：用六个 Sprint 做出可安装的 dsh-plugin，并给出每一步效果图。
 - [OpenSpec 实战指南](https://github.com/ForceInjection/OpenSpec-practise/blob/main/README.md) - Spec 驱动开发 (Spec-Driven Development) 的工程实践，演示了“意图 -> Spec -> AI -> 代码 & 验证”的新一代开发工作流。
 
 ---

@@ -1,0 +1,36 @@
+{
+  "name": "dsh-plugin-agile",
+  "version": "0.1.0",
+  "description": "Scrum board for DeepSeek Harness: backlog, sprint, standup, and Definition of Done tools.",
+  "type": "module",
+  "main": "./src/index.js",
+  "exports": {
+    ".": "./src/index.js",
+    "./client": "./src/client.js",
+    "./cordis.patch.yml": "./cordis.patch.yml",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "src",
+    "cordis.patch.yml",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "node ../../scripts/copy-src-to-lib.mjs",
+    "test": "node --test tests/*.test.js",
+    "check": "node --check src/board.js && node --check src/store.js && node --check src/catalog.js && node --check src/index.js && node --check src/client.js"
+  },
+  "license": "MIT",
+  "keywords": [
+    "dsh-plugin",
+    "deepseek-harness",
+    "agile",
+    "scrum"
+  ],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  }
+}

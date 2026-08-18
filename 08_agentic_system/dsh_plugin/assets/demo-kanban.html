@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>dsh-plugin-agile · Sprint 看板效果预览</title>
+  <style>
+    :root {
+      --bg: #0b1220;
+      --panel: #121a2b;
+      --line: #243049;
+      --text: #e8eefc;
+      --muted: #93a0bb;
+      --teal: #14b8a6;
+      --p0: #fb7185;
+      --p1: #fbbf24;
+      --p2: #60a5fa;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "IBM Plex Sans", "Noto Sans SC", sans-serif;
+      background: radial-gradient(circle at top, #152238, var(--bg) 55%);
+      color: var(--text);
+    }
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 18px 28px;
+      border-bottom: 1px solid var(--line);
+    }
+    h1 { font-size: 18px; margin: 0; }
+    .meta { color: var(--muted); font-size: 13px; }
+    .board {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 12px;
+      padding: 20px 28px 12px;
+    }
+    .col {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      min-height: 420px;
+      padding: 12px;
+    }
+    .col h2 { font-size: 13px; margin: 0 0 12px; color: var(--muted); letter-spacing: .08em; }
+    .card {
+      background: #18233a;
+      border: 1px solid #2a3b5c;
+      border-radius: 10px;
+      padding: 10px;
+      margin-bottom: 10px;
+    }
+    .card b { display: block; margin-bottom: 6px; }
+    .tag { font-size: 11px; padding: 2px 6px; border-radius: 999px; margin-right: 6px; }
+    .p0 { background: rgba(251,113,133,.15); color: var(--p0); }
+    .p1 { background: rgba(251,191,36,.15); color: var(--p1); }
+    .p2 { background: rgba(96,165,250,.15); color: var(--p2); }
+    footer {
+      margin: 0 28px 24px;
+      padding: 12px 16px;
+      border: 1px dashed var(--teal);
+      border-radius: 10px;
+      color: #99f6e4;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div>
+      <h1>DeepSeek Harness · dsh-plugin-agile</h1>
+      <div class="meta">Sprint 1 · 登录闭环可演示 · 剩余 4 天 · 5 / 10 pt</div>
+    </div>
+    <div class="meta">Host 数据源：.dsh-agile/board.json</div>
+  </header>
+  <section class="board">
+    <div class="col">
+      <h2>BACKLOG</h2>
+      <article class="card"><b>AGL-3 登录审计日志</b><span class="tag p1">P1</span><span class="tag">2pt</span></article>
+    </div>
+    <div class="col">
+      <h2>TODO</h2>
+      <article class="card"><b>AGL-2 第三方 OAuth</b><span class="tag p1">P1</span><span class="tag">3pt</span></article>
+    </div>
+    <div class="col">
+      <h2>DOING</h2>
+      <article class="card"><b>AGL-1 邮箱密码登录</b><span class="tag p0">P0</span><span class="tag">5pt</span></article>
+    </div>
+    <div class="col"><h2>REVIEW</h2></div>
+    <div class="col"><h2>DONE</h2></div>
+  </section>
+  <footer>昨日：完成登录表单校验　今日：接上 session　阻碍：OAuth 回调域名未配　·　对应工具 agile_standup</footer>
+</body>
+</html>

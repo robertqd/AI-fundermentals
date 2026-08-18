@@ -16,7 +16,7 @@ AI Fundamentals 是一个全面的人工智能基础设施（AI Infrastructure�
 - **`05_model_training_and_fine_tuning`（模型训练与微调）**：提供 AI 运维设计思路及垂域大模型 SFT 微调实践案例。
 - **`06_llm_theory_and_fundamentals`（大语言模型理论与基础）**：深度剖析量化、混合专家模型（MoE）、Embedding 技术，以及深度研究（Deep Research）等前沿 Agent 框架设计。
 - **`07_rag_and_tools`（RAG 与工具）**：包含知识图谱（KG）、GraphRAG 的实践指南、PDF 解析工具（如 MinerU、Marker）介绍，以及 RAG 系统的分块策略与 Embedding 选型分析。
-- **`08_agentic_system`（智能体系统）**：探讨 Agent 基础设施、多智能体系统（Multi-Agent System）架构、记忆管理机制（MemoryOS、MemMachine）、MCP（Model Context Protocol）协议及上下文工程（Context Engineering）。
+- **`08_agentic_system`（智能体系统）**：探讨 Agent 基础设施、多智能体系统（Multi-Agent System）架构、记忆管理机制（MemoryOS、MemMachine）、MCP（Model Context Protocol）协议、上下文工程（Context Engineering），以及 DeepSeek Harness（dsh-plugin）插件化扩展。
 - **`09_inference_system`（推理系统与优化）**：专注于大模型推理服务优化，涵盖 KV Cache 核心技术（如 LMCache、KVBM）、vLLM 高级应用、内存计算分析及企业级推理解决方案设计。
 - **`10_ai_related_course`（AI 相关课程）**：整理了 AI Infra、AI 编程实战（如 Trae 进阶教程）、多智能体培训等系统性课程的课件、讲稿与实战案例。
 - **`98_llm_programming`（大模型编程）**：汇总了面向开发者的 LLM 编程实践指南，包括 LangGraph 框架应用、Java 生态（Spring AI）集成以及 Harness Engineering 探索。

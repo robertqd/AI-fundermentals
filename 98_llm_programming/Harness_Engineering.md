@@ -342,3 +342,5 @@ Chad Fowler 将这种现象称为"Relocating Rigor"（严谨性的迁移）。�
 [1] Ryan Lopopolo, "Harness engineering: leveraging Codex in an agent-first world," _OpenAI_, 2026. [Online]. Available: https://openai.com/index/harness-engineering/
 
 [2] Birgitta Böckeler, "Harness Engineering," _martinfowler.com_, 2026. [Online]. Available: https://martinfowler.com/articles/exploring-gen-ai/harness-engineering.html
+
+实践落地可参考同仓库的 [DSH 插件敏捷开发实战](../08_agentic_system/dsh_plugin/dsh-plugin-agile-development.md)：把驾驭约束写成 DeepSeek Harness 可卸载插件，并用六个 Sprint 验收组合树、工具、持久化与 Bundle。
