@@ -20,7 +20,7 @@ export function apply(ctx, config = {}) {
       description: spec.description,
       parameters: spec.parameters,
       output: {
-        schema: { type: 'object' },
+        schema: { type: 'object', additionalProperties: true },
         render: (_args, value) => [{ type: 'text', text: JSON.stringify(value, null, 2) }],
       },
       async execute(args) {
