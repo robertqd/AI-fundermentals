@@ -1,0 +1,34 @@
+<svg width="1100" height="640" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1100" height="640" fill="#f8f9fa"/>
+  <text x="550" y="36" text-anchor="middle" font-family="Arial, sans-serif" font-size="20" font-weight="bold" fill="#1f2a37">DSH ÒöÛBùa!W ’ Bundle ’ Profile ’ ĞLö</text>
+
+  <rect x="40" y="64" width="1020" height="86" rx="10" fill="#e8f8f4" stroke="#0f9d8a" stroke-width="2"/>
+  <text x="60" y="96" font-family="Arial, sans-serif" font-size="15" font-weight="bold" fill="#0f6e63">4. ĞLö Runtime</text>
+  <text x="60" y="122" font-family="Arial, sans-serif" font-size="13" fill="#334155">Loader 	Ä}Òö ’ ( apply(ctx) ’ èŒ tools / events / effectsx}öê¨ŞÚ</text>
+
+  <rect x="40" y="168" width="1020" height="86" rx="10" fill="#e7f0fb" stroke="#2b6cb0" stroke-width="2"/>
+  <text x="60" y="200" font-family="Arial, sans-serif" font-size="15" font-weight="bold" fill="#1e4e8c">3. Profile(7å	„ï/¨Ä	</text>
+  <text x="60" y="226" font-family="Arial, sans-serif" font-size="13" fill="#334155">$DSH_HOME/profiles/web dsh.profile.bundles z + (7 cordis.patch.yml + ï	 --patch †ÖB</text>
+
+  <rect x="40" y="272" width="1020" height="86" rx="10" fill="#f3e8ff" stroke="#7c3aed" stroke-width="2"/>
+  <text x="60" y="304" font-family="Arial, sans-serif" font-size="15" font-weight="bold" fill="#5b21b6">2. Bundleï« dsh plugin add À;„ÑLB	</text>
+  <text x="60" y="330" font-family="Arial, sans-serif" font-size="13" fill="#334155">package.json ğ dsh.bundle.patch ’ cordis.patch.yml Òe id: agile-board / name: dsh-plugin-agile</text>
+
+  <rect x="40" y="376" width="490" height="150" rx="10" fill="#fff7ed" stroke="#ea580c" stroke-width="2"/>
+  <text x="60" y="408" font-family="Arial, sans-serif" font-size="15" font-weight="bold" fill="#9a3412">1a. Host !W</text>
+  <text x="60" y="434" font-family="Arial, sans-serif" font-size="13" fill="#334155">export apply(ctx) / inject: ['tools']</text>
+  <text x="60" y="456" font-family="Arial, sans-serif" font-size="13" fill="#334155">ctx.tools.register(defineTool(...))</text>
+  <text x="60" y="478" font-family="Arial, sans-serif" font-size="13" fill="#334155">ctx.effect() ¡Ãó‡öŞ¥</text>
+  <text x="60" y="500" font-family="Arial, sans-serif" font-size="13" fill="#334155">pn@	C.dsh-agile/board.json</text>
+
+  <rect x="560" y="376" width="500" height="150" rx="10" fill="#fef3c7" stroke="#d97706" stroke-width="2"/>
+  <text x="580" y="408" font-family="Arial, sans-serif" font-size="15" font-weight="bold" fill="#92400e">1b. Web Client !Wï		</text>
+  <text x="580" y="434" font-family="Arial, sans-serif" font-size="13" fill="#334155">exports["./client"] + dsh.client.platform=web</text>
+  <text x="580" y="456" font-family="Arial, sans-serif" font-size="13" fill="#334155">slots /{‹Q¦/ CSS 	éh</text>
+  <text x="580" y="478" font-family="Arial, sans-serif" font-size="13" fill="#334155">êû Host ëg(OÈhÌ™ø</text>
+  <text x="580" y="500" font-family="Arial, sans-serif" font-size="13" fill="#334155">,Yå Host-first ¤ØClient :!</text>
+
+  <text x="550" y="560" text-anchor="middle" font-family="Arial, sans-serif" font-size="13" fill="#475569"> }zprofile.bundles+ dsh-base	’ profile cordis.patch.yml ’ $DSH_HOME/cordis.patch.yml ’ --patch</text>
+  <text x="550" y="586" text-anchor="middle" font-family="Arial, sans-serif" font-size="13" fill="#475569">ìË Git Ó“Å{& Bundle B& dsh plugin add êÅnVÛeÄ</text>
+  <text x="550" y="616" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#64748b">n DeepSeek Harness ˜¹Òö!‹ dsh.pub ìËÓ“Q¦t</text>
+</svg>

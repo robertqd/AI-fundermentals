@@ -94,6 +94,7 @@ Agent Infra 是「让 Agent 能真正可靠运行、能操作真实世界、能�
 - [DeepSeek-TUI 实战：长上下文命令行编程 Agent 指南](./agent_infra/docs/deepseek-tui-in-practice.md) - 以 DeepSeek V4 的 1M 超长上下文与前缀缓存为切入点，走通从安装、配置到 Plan/Agent/YOLO 审批模式的完整实战闭环，并通过“发现 Bug → 修复 → 验证”演示 Coding Agent 的典型工作流。
 - [扩展托管智能体：让决策与执行解耦，各行其职](./agent_infra/docs/scaling-managed-agents.md) - 探讨 AI 原生基础设施的“POSIX 时刻”，通过定义通用接口解耦智能体应用与底层模型，实现长周期任务智能体的灵活托管与扩展。
 - [在 Elasticsearch 之上实现一个虚拟文件系统](./agent_infra/docs/virtual-filesystem-elasticsearch_zh.md) ([英文原文](./agent_infra/docs/virtual-filesystem-elasticsearch.md)) - 以 Mintlify 的虚拟文件系统设计为蓝本，在 Elasticsearch Serverless 之上实现 `ElasticsearchFs`，通过 DLS 做访问控制、在内存中支撑 `ls`/`cd`/`find`，并用两阶段检索优化 `grep`，为 Agent 暴露一层形似 POSIX 的只读文件接口。
+- [DSH 插件敏捷开发实战](./dsh_plugin/dsh-plugin-agile-development.md) - 用六个 Scrum Sprint 把 DeepSeek Harness 插件从契约摸底做到可安装 Bundle，每一步配效果图；配套 Host-first 示例 [`dsh-plugin-agile`](./dsh_plugin/examples/dsh-plugin-agile/)。
 
 ---
 
@@ -116,6 +117,7 @@ Agent Infra 是「让 Agent 能真正可靠运行、能操作真实世界、能�
 - [PDF 智能翻译器](./agent_skills/pdf_translator/README.md) - 结合 OCR 与大语言模型的文档处理工具，支持高精度的多模态解析与结构化翻译。
 - [LangChain 记忆集成示例](./memory/langchain/langchain_memory.md) - 演示多种记忆模式 (ConversationBuffer, Summary 等) 在 LangChain 框架中的代码实现。
 - [LangChain 记忆功能实战代码](./memory/langchain/code/README.md) - 包含基础记忆类型、智能客服应用和现代 LangGraph 记忆管理的完整可运行演示项目。
+- [dsh-plugin-agile 示例插件](./dsh_plugin/examples/dsh-plugin-agile/README.md) - DeepSeek Harness 的 Scrum 看板 Host 插件：Backlog / Sprint / Standup / DoD 工具与 `board.json` 持久化，可用 `npm test` 在无 DSH 环境下验收领域模型。
 
 ---
 

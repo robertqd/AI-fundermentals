@@ -1,0 +1,6 @@
+- insert:
+    - id: agile-board
+      name: dsh-plugin-agile
+      config:
+        persistDir: '.dsh-agile'
+        sprintLengthDays: 7

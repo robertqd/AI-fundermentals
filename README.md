@@ -156,6 +156,7 @@
 
 - [Agent First：软件工程的下一个范式转移](98_llm_programming/Agent_First.md) - 梳理编程范式的演变历史，探讨 Agent First 的核心理念与实战指南。
 - [驾驭工程](98_llm_programming/Harness_Engineering.md) - 深度解析如何构建驾驭系统，提升 AI 编程助手的可控性与效能。
+- [DSH 插件敏捷开发实战](08_agentic_system/dsh_plugin/dsh-plugin-agile-development.md) - 用 Scrum 短迭代开发 DeepSeek Harness 插件，每一步给出效果图与可安装 Bundle。
 - [OpenSpec 实战指南](https://github.com/ForceInjection/OpenSpec-practise/blob/main/README.md) - Spec 驱动开发 (Spec-Driven Development) 的工程实践，演示了“意图 -> Spec -> AI -> 代码 & 验证”的新一代开发工作流。
 
 ### 5.2 Java AI 开发
@@ -546,6 +547,7 @@ DeepSeek 模型极致性能优化实战，深度解析 vLLM 宽端点 (Wide Endp
 - [OpenHarness 深入浅出：解密开源智能体基础设施](08_agentic_system/agent_infra/docs/openharness-deep-dive.md) ([配套 PPT](08_agentic_system/agent_infra/docs/openharness-deep-dive.pptx)) - 大型语言模型 (LLM) 在推理与生成能力上取得了突破性进展，但它们本身受限于静态的上下文窗口，无法直接与真实世界进行交互。要让模型成为能够自主解决复杂任务的工程化智能体 (Agent) ，必须为其配备执行动作的工具、持久化的记忆以及安全隔离的运行边界。这就是“智能体基础设施” (Agent Harness) 的核心使命。
 - [Agent Sandbox 的演进与设计范式](08_agentic_system/agent_infra/docs/agent-sandbox-design.md) ([配套 PPT](08_agentic_system/agent_infra/docs/agent-sandbox-design.pptx)) - 探讨 Agent Sandbox 的核心设计理念，对比 OpenShell、Sandlock 等沙箱方案，揭示从“硬件级隔离”向“策略优先”演进的技术趋势。
 - [深度解析 Kagent：以构建 Kubernetes 运维智能体为例](08_agentic_system/agent_infra/docs/deep-dive-kagent-k8s-ops-agent.md) ([配套 PPT](08_agentic_system/agent_infra/docs/deep-dive-kagent-k8s-ops-agent.pptx)) - 深度解析 Kagent 的核心架构与工作机制，并以“构建阿里云 ACK 运维智能体”为实战案例，展示大模型与运维工具的编排。
+- [DSH 插件敏捷开发实战](08_agentic_system/dsh_plugin/dsh-plugin-agile-development.md) - 用六个 Scrum Sprint 开发 DeepSeek Harness 插件，每一步配效果图，交付可安装的 Scrum 看板 Bundle。
 
 ### 10.3 实战代码与演示项目
 
@@ -562,6 +564,7 @@ DeepSeek 模型极致性能优化实战，深度解析 vLLM 宽端点 (Wide Endp
 - [LangChain 记忆功能集成](08_agentic_system/memory/langchain/code/README.md) - 包含基础记忆类型、智能客服应用和 LangGraph 记忆管理的演示
   - [代码实现示例](08_agentic_system/memory/langchain/langchain_memory.md)
 - [Agent Skill：PDF 智能翻译器](08_agentic_system/agent_skills/pdf_translator/README.md) - 结合 OCR 与 LLM 的多模态文档处理工具
+- [dsh-plugin-agile 示例插件](08_agentic_system/dsh_plugin/examples/dsh-plugin-agile/README.md) - DeepSeek Harness Scrum 看板 Host 插件，含 Backlog / Sprint / Standup 工具与可单测的领域模型
 
 ### 10.4 前沿学术与行业研究
 
