@@ -1,0 +1,4 @@
+{
+  "name": "AI-Fundamentals — dsh-plugin-agile (Node)",
+  "install": "node --version && npm --version && cd 08_agentic_system/dsh_plugin/examples/dsh-plugin-agile && npm run check"
+}
