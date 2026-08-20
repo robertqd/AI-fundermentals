@@ -4,7 +4,7 @@
 
 如果说上一层目录在讲清楚“一台 AI 服务器有哪几层硬件”，那么这个目录要回答的问题更具体：**在 NVIDIA 这条主流路线上，GPU 内部到底长什么样？为什么在大模型时代依旧是算力底座的首选？它和 NPU 等专用芯片相比又有什么取舍？**
 
-内容上分为两条线：一条沿硬件内部结构向下走（SM、Tensor Core、内存层次、具体型号），另一条则拉高到算力生态视角，把 GPGPU 和 NPU 在训练、推理场景下的优劣放在一起看。
+内容上分为三条线：一条沿硬件内部结构向下走（SM、Tensor Core、内存层次、具体型号）；一条看片上独立的媒体引擎，把 NVDEC 视频解码从码流一路追到 CUDA Tensor；另一条则拉高到算力生态视角，把 GPGPU 和 NPU 在训练、推理场景下的优劣放在一起看。
 
 ## 2. 核心内容导航
 
@@ -16,7 +16,14 @@
 - **硬件实例分析**：以数据中心级的 Tesla V100 和工作站级的 RTX 5000 为例，看 Tensor Core 和 RT Core 在真实芯片上如何落地。
 - **实践练习**：配有可直接跑的 CUDA API 查询和内存带宽基准测试，抛开纯理论，亲手验证。
 
-### 2.2 大模型算力架构对比
+### 2.2 视频与图像硬件解码
+
+CUDA Core 负责通用计算，但视频码流并不是靠 SM 硬解的。从 Fermi 开始，NVIDIA GPU 上就有独立的 **NVDEC** 引擎，后续又补上 NVENC 和 NVJPEG。多模态训练和视频理解推理里，CPU 解码加 Host-to-Device 拷贝经常先于模型成为瓶颈；把预处理卸载到 NVDEC，解码帧直接落在显存，才能把 Tensor Core 喂饱。
+
+- **[NVIDIA 视频与图像硬件解码](video_codec/README.md)** ——从硬件引擎、三阶段流水线（Demux / Parser / Decoder）、NVDECODE API，讲到 DALI / FFmpeg / DeepStream 的落地，以及和 LLM Prefill-Decode 的区分。
+  - [硬件解码流程：从 NVDEC 到 AI 推理输入](video_codec/01_nvidia_decode_pipeline.md)
+
+### 2.3 大模型算力架构对比
 
 到了大模型时代，“用什么芯片训，用什么芯片推”不再是一个默认答案。这一节的目标就是把这个选择题展开。
 
@@ -32,4 +39,5 @@
 - [CUDA 编程基础](../../02_gpu_programming/) - 结合底层架构知识，学习 CUDA 核心概念与编程范式
 - [GPU 编程实践](../../02_gpu_programming/) - GPU 编程入门与实战指南
 - [性能分析工具](../../02_gpu_programming/04_profiling/README.md) - 利用 Nsight 等工具进行 GPU 性能分析与深度优化
+- [NVIDIA 硬件解码流程](video_codec/01_nvidia_decode_pipeline.md) - NVDEC / NVJPEG 解码流水线与多模态输入路径
 - [AI 系统架构](https://github.com/Infrasys-AI/AISystem) - 了解底层算力如何支撑上层 AI 系统的整体架构设计
