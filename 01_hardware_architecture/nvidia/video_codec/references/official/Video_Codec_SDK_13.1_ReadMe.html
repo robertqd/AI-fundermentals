@@ -1,0 +1,821 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>NVIDIA Video Codec SDK 13.1 Read Me</title>
+<style>
+:root { color-scheme: light; }
+body { font-family: "Segoe UI", "WenQuanYi Micro Hei", "Noto Sans CJK SC", sans-serif;
+       max-width: 960px; margin: 24px auto; padding: 0 20px 64px; line-height: 1.65; color: #111827; }
+h1,h2,h3 { color: #0f4c81; }
+h1 { border-bottom: 2px solid #1a6fc4; padding-bottom: 8px; }
+pre, code { font-family: "JetBrains Mono", "Cascadia Code", ui-monospace, monospace; }
+pre { background: #0f172a; color: #e2e8f0; padding: 14px; overflow: auto; border-radius: 8px; }
+code { background: #f1f5f9; padding: 1px 5px; border-radius: 4px; }
+pre code { background: transparent; color: inherit; padding: 0; }
+table { border-collapse: collapse; width: 100%; margin: 12px 0 20px; font-size: 14px; }
+th, td { border: 1px solid #cbd5e1; padding: 6px 10px; text-align: left; }
+th { background: #e0f2fe; }
+blockquote { border-left: 4px solid #1a6fc4; margin-left: 0; padding: 4px 12px; background: #f8fafc; }
+img { max-width: 100%; }
+.meta { color: #64748b; font-size: 13px; }
+</style>
+</head>
+<body>
+<p class="meta">Offline copy of NVIDIA public docs. Source: <a href="https://docs.nvidia.com/video-technologies/video-codec-sdk/13.1/read-me/">https://docs.nvidia.com/video-technologies/video-codec-sdk/13.1/read-me/</a></p>\n<article>\n<section id="read-me">
+<h1>Read Me<a class="headerlink" href="#read-me" title="Link to this heading">#</a></h1>
+<div class="toctree-wrapper compound">
+<span id="document-content"></span><section id="read-me">
+<h2><span class="section-number">1. </span>Read Me<a class="headerlink" href="#read-me" title="Link to this heading">#</a></h2>
+<section id="release-notes">
+<h3><span class="section-number">1.1. </span>Release Notes<a class="headerlink" href="#release-notes" title="Link to this heading">#</a></h3>
+<p class="title sectiontitle rubric" id="whats-new-in-video-codec-sdk-v13-1">What’s new in Video Codec SDK v13.1?</p>
+<p><strong>Encode Features:</strong></p>
+<ol class="arabic simple">
+<li><p>Support UHQ mode in iterative encoding</p></li>
+<li><p>Support application allocated CUarray as an NVENC input surface</p></li>
+<li><p>Hierarchical B-Frame Reference Mode</p></li>
+</ol>
+<p><strong>Decode Features:</strong></p>
+<ol class="arabic simple">
+<li><p>Expose decode statistics such as motion vectors, QP and MB type (H.264 and H.265)</p></li>
+<li><p>Support application allocated CUarray as an NVDEC output surface</p></li>
+<li><p>Report view information during MV-HEVC decode</p></li>
+<li><p>Support seeking to a specific frame in Video Codec SDK</p></li>
+</ol>
+<p><strong>Transcode Features:</strong></p>
+<ol class="arabic simple">
+<li><p>Modular, pipelined and queue based transcode sample applications.</p></li>
+<li><p>Optimization of Transcode pipeline by minimizing intermediate GPU memory copies and CUDA context switches.</p></li>
+</ol>
+<p><strong>Docker Container Support:</strong></p>
+<ul class="simple">
+<li><p>Dockerfile for building a complete SDK development environment</p></li>
+<li><p>Pre-built samples, FFmpeg, Vulkan SDK, and test vector generation</p></li>
+<li><p>Available at <a class="gitlab reference external" href="https://gitlab.com/nvidia/container-images/video-codec-sdk">nvidia/container-images/video-codec-sdk</a></p></li>
+</ul>
+<p class="title sectiontitle rubric" id="package-contents">Package Contents</p>
+<p>This package contains the following:</p>
+<ol class="arabic simple">
+<li><p>Sample applications demonstrating various encoding/decoding/transcoding capabilities</p>
+<ul class="simple">
+<li><p>[.\Samples\]</p></li>
+</ul>
+</li>
+<li><p>NVIDIA video encoder API header</p>
+<ul class="simple">
+<li><p>[.\Interface\nvEncodeAPI.h]</p></li>
+</ul>
+</li>
+<li><p>NVIDIA video decoder API headers</p>
+<ul class="simple">
+<li><p>[.\Interface\cuviddec.h]</p></li>
+<li><p>[.\Interface\nvcuvid.h]</p></li>
+</ul>
+</li>
+<li><p>NVIDIA video decoder and encoder stub libraries</p>
+<ul class="simple">
+<li><p>[.\Lib\linux\stubs\x86_64\libnvcuvid.so]</p></li>
+<li><p>[.\Lib\linux\stubs\x86_64\libnvidia-encode.so]</p></li>
+<li><p>[.\Lib\linux\stubs\aarch64\libnvcuvid.so]</p></li>
+<li><p>[.\Lib\linux\stubs\aarch64\libnvidia-encode.so]</p></li>
+<li><p>[.\Lib\win\x64\nvcuvid.lib]</p></li>
+<li><p>[.\Lib\win\x64\nvencodeapi.lib]</p></li>
+</ul>
+</li>
+</ol>
+<p>The sample applications provided in the package are for demonstration purposes only and may not be fully tuned for quality and performance. Hence the users are advised to do their independent evaluation for quality and/or performance.</p>
+</section>
+<section id="sample-applications">
+<span id="id1"></span><h3><span class="section-number">1.2. </span>Sample Applications<a class="headerlink" href="#sample-applications" title="Link to this heading">#</a></h3>
+<p>Video Codec SDK contains various sample applications that demonstrate how to use NVENC and NVDEC APIs. These applications are primarily developed as reference code for developers to understand API usage, quickly run experiments, and compare the control/data flow with their applications. These samples are built on top of reusable classes NvEncoder and NvDecoder which encapsulate the main functionality and provide a simple high-level programming interface for quick development. A few other applications are also included as samples, which demonstrate how to use NVIDIA codec APIs optimized for scalability along with a few advanced features for quality/performance tradeoff.</p>
+<p><strong>Folder Structure:</strong></p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>Samples
+|--AppDecode
+This folder contains all the decoder sample applications.
+|--AppEncode
+This folder contains all the encoder sample applications.
+|--AppTranscode
+This folder contains all the transcode sample applications.
+|--External
+This folder contains the external dependencies required to build samples
+|--NvCodec
+This folder contains classes that implement high-level interface for NVENC and NVDEC APIs.
+|--Utils
+This folder contains the utility code used by samples.
+</pre></div>
+</div>
+<p>Help section is available for all applications. Execute any application with command line parameter <code class="docutils literal notranslate"><span class="pre">-h</span></code> or <code class="docutils literal notranslate"><span class="pre">--help</span></code> to get basic usage information. Execute with <code class="docutils literal notranslate"><span class="pre">-A</span></code> or <code class="docutils literal notranslate"><span class="pre">--advanced-options</span></code> to get detailed usage information. Help section will contain list of supported parameters indicating which ones are mandatory and which ones are optional. For optional parameters, it also mentions what default value is set in case user does not pass any value to them.</p>
+<p>Here is a short description of what each application does:</p>
+<p class="title sectiontitle rubric">Decoder Applications</p>
+<p><strong>AppDec</strong></p>
+<p>This sample application illustrates the demuxing and decoding of a media file followed by resize and crop of the output frames. The application supports 4:2:0, 4:2:2 and 4:4:4 chroma formats (planar and semi-planar), e.g., YUV420P/YUV420P16, YUV422P/YUV422P16, YUV444P/YUV444P16, as well as NV12 and P016 output formats.</p>
+<p>Sample command line:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>AppDec.exe -i input.h264 -o output.yuv -gpu 0
+</pre></div>
+</div>
+<p><strong>AppDecD3D</strong></p>
+<p>This sample application illustrates the decoding of media file and display of decoded frames in a window. This is done by CUDA interop with D3D (both D3D9 and D3D11).</p>
+<p>Sample command line:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>AppDecD3D.exe -i input.h264 -d3d11
+</pre></div>
+</div>
+<p><strong>AppDecGL</strong></p>
+<p>This sample application illustrates the decoding of media file and display of decoded frames in a window. This is done by CUDA interop with OpenGL. Synchronization between rendering and decode thread is achieved using ConcurrentQueue implementation.</p>
+<p>Sample command line:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>AppDecGL.exe -i input.h264
+</pre></div>
+</div>
+<p><strong>AppDecImageProvider</strong></p>
+<p>This sample application illustrates the decoding output of a media file in a desired color format. The application supports native YUV and various RGB (bgra, bgrp, bgra64) output formats.</p>
+<p>Output formats supported: NV12/P016 (native YUV), BGRA/BGRP/BGRA64 (RGB).</p>
+<p>Sample command line:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>AppDecImageProvider.exe -i input.h264 -o output.bgra
+</pre></div>
+</div>
+<p><strong>AppDecLowLatency</strong></p>
+<p>This sample application demonstrates low-latency decoding. This feature sets CUVIDPARSERPARAMS::ulMaxDisplayDelay = 0 while creating the parser object to get an output frame as soon as it is available for display, without any delay.</p>
+<p>There is a command-line option “force_zero_latency” that allows capturing decoded frames immediately after decode. The feature will work for streams having I and P frames only (same display and decode order), as the application captures decoded frames just after decode in the decode callback function.</p>
+<p>Sample command line:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>AppDecLowLatency.exe -i input.h264 -force_zero_latency
+</pre></div>
+</div>
+<p><strong>AppDecMem</strong></p>
+<p>This sample application is similar to AppDec. It illustrates how to demux and decode media content from memory buffer. It allocates AVIOContext explicitly and also defines method to read data packets from input file. For simplicity, this application reads the input stream and stores it in a buffer before invoking the demuxer.</p>
+<p>Sample command line:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>AppDecMem.exe -i input.h264
+</pre></div>
+</div>
+<p><strong>AppDecMultiFiles</strong></p>
+<p>This sample application illustrates the decoding of multiple files with/without using the decoder Reconfigure API. It also displays the time taken for decoder creation and destruction. Multiple files are specified using <code class="docutils literal notranslate"><span class="pre">-filelist</span></code> commandline option. The app will decode files in a sequential manner.</p>
+<p>Sample command line:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>AppDecMultiFiles.exe -filelist files.txt
+</pre></div>
+</div>
+<p><strong>AppDecMultiInput</strong></p>
+<p>This sample application demonstrates how to decode multiple raw video files and post-process them with CUDA kernels on different CUDA streams. This sample applies Ripple effect as a part of post processing. The effect consists of ripples expanding across the surface of decoded frames.</p>
+<p>Sample command line:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>AppDecMultiInput.exe -i input1.yuv -s 1920x1080 -i input2.yuv -s 1280x720
+</pre></div>
+</div>
+<p><strong>AppDecPerf</strong></p>
+<p>This sample application measures decoding performance in FPS. The application creates multiple host threads and runs a different decoding session on each thread. The number of threads can be controlled by the CLI option <code class="docutils literal notranslate"><span class="pre">-thread</span></code>. The application creates 2 host threads, each with a separate decode session, by default. The application supports measuring the decode performance only (keeping decoded frames in device memory) as well as measuring the decode performance including transfer of frames to the host memory.</p>
+<p>Sample command line:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>AppDecPerf.exe -i input.h264 -thread 2
+</pre></div>
+</div>
+<p><strong>AppDecVideoDecoder</strong></p>
+<p>This sample application demonstrates the NvVideoDecoder API with comprehensive seeking and random frame access capabilities. It supports decoding specific frames by index, batch operations, time-based seeking, and playlist mode for processing multiple videos with decoder caching. Batch operations fetch N sequential frames starting from each index (e.g., <code class="docutils literal notranslate"><span class="pre">-batch</span> <span class="pre">5</span></code> with <code class="docutils literal notranslate"><span class="pre">-framelist</span> <span class="pre">0,50</span></code> decodes frames 0-4 and 50-54).</p>
+<p>Sample command lines:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span># Decode specific frames by index
+AppDecVideoDecoder.exe -i input.mp4 -framelist 0,10,20,30,40
+
+# Decode frames using range syntax (start:end:step)
+AppDecVideoDecoder.exe -i input.mp4 -o output.yuv -framelist 0:100:10
+
+# Batch mode (N sequential frames per index)
+AppDecVideoDecoder.exe -i input.mp4 -batch 5 -framelist 0,50,100
+
+# Time-based access
+AppDecVideoDecoder.exe -i input.mp4 -t 0:10:2
+
+# Playlist mode
+AppDecVideoDecoder.exe -playlist playlist.txt
+</pre></div>
+</div>
+<p class="title sectiontitle rubric">Encoder Applications</p>
+<p><strong>AppEncCuda</strong></p>
+<p>This sample application illustrates encoding of frames in CUDA device buffers. The application reads the image data from file and loads it to CUDA input buffers obtained from the encoder using NvEncoder::GetNextInputFrame(). The encoder subsequently maps the CUDA buffers for encoder using NvEncodeAPI and submits them to NVENC hardware for encoding as part of EncodeFrame() function. The NVENC hardware output is written in system memory for this case.</p>
+<p>This sample application also illustrates the use of video memory buffer allocated by the application to get the NVENC hardware output. This feature can be used for H264 ME-only mode, H264 encode and HEVC encode. This application copies the NVENC output from video memory buffer to host memory buffer in order to dump to a file, but this is not needed if application chooses to use it in some other way.</p>
+<p>Since encoding may involve CUDA pre-processing on the input and post-processing on output, use of CUDA streams is also illustrated to pipeline the CUDA pre-processing and post-processing tasks, for output in video memory case.</p>
+<p>CUDA streams can be used for H.264 ME-only, HEVC ME-only, H264 encode, HEVC encode and AV1 encode.</p>
+<p>Input formats supported: IYUV/YV12, NV12, P010, NV16, P210, YUV444, YUV444P16, BGRA, BGRA10, AYUV, ABGR, ABGR10.</p>
+<p>Sample command line:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>AppEncCuda.exe -i input.yuv -s 1920x1080 -if iyuv -o out.h264
+</pre></div>
+</div>
+<p><strong>AppEncD3D9</strong></p>
+<p>This sample application illustrates encoding of frames in IDirect3DSurface9 surfaces. There are 2 modes of operation demonstrated in this application. In the default mode application reads RGB data from file and copies it to D3D9 surfaces obtained from the encoder using NvEncoder::GetNextInputFrame() and the RGB surface is submitted to NVENC for encoding. In the second case (<code class="docutils literal notranslate"><span class="pre">-nv12</span></code> option) the application performs a color space conversion from RGB to NV12 using DXVA’s VideoProcessBlt API call and the NV12 surface is submitted for encoding.</p>
+<p>Input formats supported: RGB; NV12 via -nv12 parameter.</p>
+<p>Sample command line:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>AppEncD3D9.exe -i input.bgra -s 1920x1080 -nv12 -o out.h264
+</pre></div>
+</div>
+<p><strong>AppEncD3D11</strong></p>
+<p>This sample application illustrates encoding of frames in ID3D11Texture2D textures. There are 2 modes of operation demonstrated in this application. In the default mode application reads RGB data from file and copies it to D3D11 textures obtained from the encoder using NvEncoder::GetNextInputFrame() and the RGB texture is submitted to NVENC for encoding. In the second case (<code class="docutils literal notranslate"><span class="pre">-nv12</span></code> option) the application converts RGB textures to NV12 textures using DXVA’s VideoProcessBlt API call and the NV12 texture is submitted for encoding.</p>
+<p>This sample application also illustrates the use of video memory buffer allocated by the application to get the NVENC hardware output. This feature can be used for H264 ME-only mode, H264 encode, HEVC encode and AV1 encode.</p>
+<p>Input formats supported: RGB; NV12 via -nv12 parameter.</p>
+<p>Sample command line:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>AppEncD3D11.exe -i input.bgra -s 1920x1080 -nv12 -o out.h264
+</pre></div>
+</div>
+<p><strong>AppEncD3D12</strong></p>
+<p>This sample application illustrates encoding of ID3D12Resource. This feature can be used for H264 encode, HEVC encode and AV1 encode.</p>
+<p>Input formats supported: RGB.</p>
+<p>Sample command line:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>AppEncD3D12.exe -i input.bgra -s 1920x1080 -o out.h264
+</pre></div>
+</div>
+<p><strong>AppEncDec</strong></p>
+<p>This sample application illustrates the encoding and streaming of a video with one thread while another thread receives and decodes the video. HDR video streaming is also demonstrated in this application.</p>
+<p>Input formats supported: IYUV, NV12, NV16, P010, P210, BGRA, BGRA64.</p>
+<p>Sample command line:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>AppEncDec.exe -i input.h264 -o out.h264
+</pre></div>
+</div>
+<p><strong>AppEncGL</strong></p>
+<p>This sample application illustrates encoding of frames stored in OpenGL textures. The application reads frames from the input file and uploads them to the textures obtained from the encoder using NvEncoder::GetNextInputFrame(). The encoder subsequently maps the textures for encoder using NvEncodeAPI and submits them to NVENC hardware for encoding as part of NvEncoder::EncodeFrame().</p>
+<p>The X server must be running and the DISPLAY environment variable must be set when attempting to run this application.</p>
+<p>Input formats supported: IYUV, NV12.</p>
+<p>Sample command line:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>AppEncGL.exe -i input.yuv -s 1920x1080 -if iyuv -o out.h264
+</pre></div>
+</div>
+<p><strong>AppEncLowLatency</strong></p>
+<p>This sample application demonstrates low latency encoding features and other QOS features like bitrate change and resolution change. The application uses the CUDA interface to demonstrate the above features but can also be used with the D3D or OpenGL interfaces. There are 2 cases of operation demonstrated in this application, controlled by the CLI option <code class="docutils literal notranslate"><span class="pre">-case</span></code>. In the first case the application demonstrates bitrate change at runtime without the need to reset the encoder session. The application reduces the bitrate by half and then restores it to the original value after 100 frames. The second case demonstrates dynamic resolution change feature where the application can reduce resolution depending upon bandwidth requirement. In the application, the encode dimensions are reduced by half and restored to the original dimensions after 100 frames.</p>
+<p>Input formats supported: IYUV, NV12, NV16, P210.</p>
+<p>Sample command line:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>AppEncLowLatency.exe -i input.yuv -s 1920x1080 -if iyuv -case 1 -o out.h264
+</pre></div>
+</div>
+<p><strong>AppEncME</strong></p>
+<p>This sample application illustrates the use of NVENC hardware to calculate motion vectors. The application uses the CUDA device type and associated buffers when demonstrating the usage of the ME-only mode but can be used with other device types like D3D and OpenGL.</p>
+<p>Input formats supported: IYUV, NV12, YV12, YUV444, P010, YUV444P16, BGRA, ARGB10, AYUV, ABGR, ABGR10.</p>
+<p>Sample command line:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>AppEncME.exe -i input.yuv -s 1920x1080 -if iyuv
+</pre></div>
+</div>
+<p><strong>AppEncMultiInstance</strong></p>
+<p>This sample application was created to accelerate file compression storage applications. It does this by splitting the input video into N separate and independent video portions, i.e., independent GOPs (Split GOP). After being encoded independently, the compressed video portions are then written to file preserving the original order generating a single output bitstream. More than one encoding session thread can be used to encode the several independent video portions. Using more than 1 encoding session threads should allow for speedups when using NVIDIA GPUs with more than 1 NVENC. The number of portions the input video should be partitioned in is controlled by the CLI option <code class="docutils literal notranslate"><span class="pre">-nf</span></code> and the number of encoding session threads <code class="docutils literal notranslate"><span class="pre">-thread</span></code>. Note that on systems with GeForce GPUs, the number of simultaneous encode sessions allowed on the system is restricted to 12 sessions. There are separate threads for: 1. reading the RAW input frames from disk; 2. copying the RAW frames from RAM to VRAM, encoding and copying the compressed data from VRAM to RAM; 3. writing the compressed data to the output file. Additionally, the main thread is only used for initialization and to create work queues for the described threads.</p>
+<p>Input formats supported: IYUV, NV12, YV12, YUV444, P010, YUV444P16, BGRA, ARGB10, AYUV, ABGR, ABGR10.</p>
+<p>Sample command line:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>AppEncMultiInstance.exe -i input.yuv -s 1920x1080 -if iyuv -nf 4 -thread 2 -o out.h264
+</pre></div>
+</div>
+<p><strong>AppEncPerf</strong></p>
+<p>This sample application measures encoding performance in FPS. The application creates multiple host threads and runs a different encoding session on each thread. The number of threads can be controlled by the CLI option <code class="docutils literal notranslate"><span class="pre">-thread</span></code>. The application creates 2 host threads, each with a separate encode session, by default. Note that on systems with GeForce GPUs, the number of simultaneous encode sessions allowed on the system is restricted to 12 sessions.</p>
+<p>Input formats supported: IYUV, NV12, YV12, NV16, YUV444, P010, P210, YUV444P16, BGRA, ARGB10, AYUV, ABGR, ABGR10.</p>
+<p>Sample command line:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>AppEncPerf.exe -i input.yuv -s 1920x1080 -if iyuv -thread 2 -frame 2000
+</pre></div>
+</div>
+<p><strong>AppEncQual</strong></p>
+<p>This sample application demonstrates an Iterative Encoder implementation. A constant quality mode is implemented where the user is able to specify a minimum and maximum PSNR-Y as well as maximum number of iterations per frame. The Iterative Encoder will:</p>
+<ol class="arabic simple">
+<li><p>Interrupt the encoder state after each encoded frame;</p></li>
+<li><p>Check the Reconstructed frame’s PSNR-Y (Reconstructed Frame Output API);</p></li>
+<li><p>Compare against the user defined range of desired PSNRs;</p></li>
+<li><p>Adjust the QP/CQ parameter for the next iteration (Reconfigure API);</p></li>
+<li><p>After the desired PSNR range or maximum number of iterations is reached, the encoder state is advanced and the next frame is encoded</p></li>
+</ol>
+<p>This sample is compatible with rate controls Constant QP and VBR Constant Quality. The QP/CQ parameter is adjusted based on qpDelta input parameter (default: 1).</p>
+<p>Input formats supported: IYUV, NV12, YV12, NV16, P210, YUV444.</p>
+<p>Sample command line:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>AppEncQual.exe -i input.yuv -s 1920x1080 -if iyuv -maxiter 3 -minpsnr 35 -maxpsnr 40
+</pre></div>
+</div>
+<p><strong>AppEncExternalMEHint</strong></p>
+<p>This sample application demonstrates passing external ME hints to NVENC. The application uses the CUDA interface to demonstrate the above feature but can also be used with the D3D or OpenGL interfaces. When external ME hints are enabled, the application expects configuration files that specify hint counts per block and paths to input hint files for each frame, allowing users to provide custom motion estimation guidance to the encoder.</p>
+<p>Input formats supported: IYUV, NV12.</p>
+<p>Sample command line:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>AppEncExternalMEHint.exe -i input.yuv -s 1920x1080 -if nv12 -externalMEHintConfigFile hints.cfg
+</pre></div>
+</div>
+<p><strong>AppMotionEstimationVkCuda</strong></p>
+<p>This sample application demonstrates feeding of CUarrays to EncodeAPI for the purposes of motion estimation between pairs of frames, using the H.264 motion estimation-only mode. The CUarrays registered with EncodeAPI have not been created by the application but have been obtained through the interop of CUDA with the Vulkan graphics API.</p>
+<p class="title sectiontitle rubric">Transcode Applications</p>
+<p><strong>AppTranscode</strong></p>
+<p>This sample application demonstrates transcoding of an input stream with a staged, multi-threaded pipeline. Each task runs on a separate thread (decode -&gt; CUDA processing -&gt; encode -&gt; get encoded output -&gt; mux/write), with concurrent queues passing per-frame tasks between stages. This improves performance by decoupling file I/O and by separating NvEncEncodePicture from NvEncLockBitstream to reduce latency. The application accepts common container inputs (for example, mp4). If requested, decoded content can be bit-depth converted before encoding (8-bit &lt;-&gt; 10-bit per component).</p>
+<p>Sample command line:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>AppTrans.exe -i input.mp4 -o out.h264
+</pre></div>
+</div>
+<p><strong>AppTransOneToN</strong></p>
+<p>This sample application demonstrates 1:N transcoding of a single input stream. Decoding occurs on the main thread and one encoding thread is created for each output. Per-frame synchronization between decode and encode uses condition variables and mutexes (instead of sleeps) for better performance. A different resolution can be specified per output using repeated -r WxH entries, and frames are scaled as required. If no output resolutions are specified, two streams are generated by default: 1280x720 and 800x480. For input formats, 8-bit content is processed as NV12 and &gt;8-bit content as P010; YUV444 inputs are not supported.</p>
+<p>Sample command line:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>AppTransOneToN.exe -i input.h264 -o out -r 1280x720 800x480
+</pre></div>
+</div>
+<p><strong>AppTransPerf</strong></p>
+<p>This sample application measures transcoding performance in FPS. This sample application takes a single input stream and spawns N pairs of threads. In each pair, one thread is responsible for decoding the input stream and making the decoded frames available to the other thread for encoding.</p>
+<p>Sample command line:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>AppTransPerf.exe -i input.h264 -thread 2
+</pre></div>
+</div>
+<p><strong>AppTransZeroCopy</strong></p>
+<p>AppTransZeroCopy is a video transcoding sample that eliminates the intermediate host or device memory copy between the decoder and encoder. In a traditional transcode pipeline (as in AppTrans), NVDEC decodes video into its internal surfaces, which are then copied to a separate CUDA buffer that NVENC reads from — this copy is executed as a CUDA kernel that consumes SM (Streaming Multiprocessor) cycles. AppTransZeroCopy instead allocates a shared pool of CUDA arrays that are registered with both NVDEC and NVENC simultaneously — the decoder writes decoded frames directly into these arrays, and the encoder reads from the same arrays without any copy. This not only reduces GPU memory bandwidth usage but also significantly lowers SM utilization.</p>
+<p>Sample command line:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>AppTransZeroCopy -i input.mp4 -o output.mp4 -codec hevc -tuninginfo hq
+</pre></div>
+</div>
+</section>
+<section id="system-requirements">
+<span id="id2"></span><h3><span class="section-number">1.3. </span>System Requirements<a class="headerlink" href="#system-requirements" title="Link to this heading">#</a></h3>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>NVIDIA Video Codec SDK sample applications support 64-bit builds only. Use x64 architecture on Windows or 64-bit Linux builds. Existing 32-bit applications using the NVENC and NVDEC APIs are recommended to migrate to 64-bit.</p>
+</div>
+<ul>
+<li><p>GPU: NVIDIA Turing/Ampere/Ada/Hopper/Blackwell GPU with hardware video accelerators</p></li>
+<li><p>Jetson: NVIDIA Jetson Thor with hardware video accelerators</p>
+<ul class="simple">
+<li><p>Refer to the NVIDIA Video Codec SDK Support Matrix web page (<a class="reference external" href="https://developer.nvidia.com/video-encode-and-decode-support-matrix">https://developer.nvidia.com/video-encode-and-decode-support-matrix</a>) for GPU and Jetson which support video encoding and decoding acceleration.</p></li>
+</ul>
+</li>
+<li><p>Video Codec SDK can be downloaded from <a class="reference external" href="https://developer.nvidia.com/nvidia-video-codec-sdk">https://developer.nvidia.com/nvidia-video-codec-sdk</a></p></li>
+<li><p>For Jetson, the Video Codec SDK (and all required dependencies) can also be installed directly using APT by running the following command in device terminal:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>sudo apt install nvidia-video-codec-sdk
+</pre></div>
+</div>
+</li>
+<li><p>Video Codec SDK is available in GitLab at <a class="gitlab reference external" href="https://gitlab.com/nvidia/video/video-codec-sdk">nvidia/video/video-codec-sdk</a></p></li>
+<li><p>Documents can be browsed online at <a class="reference external" href="https://docs.nvidia.com/video-technologies/video-codec-sdk/index.html">https://docs.nvidia.com/video-technologies/video-codec-sdk/index.html</a></p></li>
+<li><p>Windows</p>
+<ul class="simple">
+<li><p>Driver version 610 and above</p></li>
+<li><p>CUDA 13.1 or higher Toolkit</p></li>
+</ul>
+</li>
+<li><p>Linux</p>
+<ul class="simple">
+<li><p>Driver version 610 and above</p></li>
+<li><p>CUDA 13.1 or higher Toolkit</p></li>
+</ul>
+</li>
+<li><p>Jetson Linux</p>
+<ul class="simple">
+<li><p>Version 39.2 and above</p></li>
+<li><p>CUDA 13.0 or higher Toolkit</p></li>
+</ul>
+</li>
+<li><p>Visual Studio Solution and Linux Makefiles can now be generated using CMake. CMake 3.9 or later is required for SDK 10.0 and higher. Self-extracting scripts or installers for CMake can be downloaded from <a class="reference external" href="https://cmake.org/download/">https://cmake.org/download/</a>.</p></li>
+</ul>
+<p class="title sectiontitle rubric" id="windows-configuration-requirements">Windows Configuration Requirements</p>
+<ul class="simple">
+<li><p>Vulkan SDK.</p></li>
+</ul>
+<p>To build and run the AppMotionEstimationVkCuda sample application.</p>
+<table class="table-no-stripes compact longtable docutils align-default">
+<colgroup>
+<col style="width: 23.1%" />
+<col style="width: 76.9%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Actions</p></th>
+<th class="head"><p>Overview</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Get package</p></td>
+<td><p>The Vulkan SDK needs to be installed to build and run the AppMotionEstimationVkCuda sample application. Vulkan SDK can be downloaded from <a class="reference external" href="https://vulkan.lunarg.com/sdk/home">https://vulkan.lunarg.com/sdk/home</a>.</p></td>
+</tr>
+<tr class="row-odd"><td><p>Set environment variable</p></td>
+<td><p>VULKAN_SDK: pointing to Vulkan SDK install directory.</p></td>
+</tr>
+</tbody>
+</table>
+<ul class="simple">
+<li><p>FFmpeg:</p></li>
+</ul>
+<p>If the SKIP_FFMPEG_DEPENDENCY CMake variable is set to TRUE, the following applications dependent on FFmpeg will not be generated: AppDec, AppDecD3D, AppDecGL, AppDecImageProvider, AppDecLowLatency, AppDecMem, AppDecMultiFiles, AppDecMultiInput, AppDecPerf, AppEncDec, AppTrans, AppTransOneToN and AppTransPerf.</p>
+<table class="table-no-stripes compact longtable docutils align-default">
+<colgroup>
+<col style="width: 25.9%" />
+<col style="width: 74.1%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Actions</p></th>
+<th class="head"><p>Overview</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Get package</p></td>
+<td><p>Get FFmpeg LGPL shared build (version 7.1 or above) from <a class="reference external" href="https://github.com/BtbN/FFmpeg-Builds/releases">BtbN repository</a></p></td>
+</tr>
+<tr class="row-odd"><td><p>Set cmake variable</p></td>
+<td><p>During the CMake configuration phase (<a class="reference external" href="#building-samples-build-samples-windows">Section 1.3</a>), set the FFMPEG_DIR CMake variable to point to the extracted FFmpeg directory containing the headers and libraries (i.e., the directory that contains the bin, lib, and include subdirectories).</p></td>
+</tr>
+<tr class="row-even"><td></td>
+<td><p>To set the FFMPEG_DIR CMake variable correctly during configuration, use the following syntax with an absolute or properly referenced path to the extracted FFmpeg directory: -DFFMPEG_DIR=ffmpeg-master-latest-win64-gpl-shared/ffmpeg-master-latest-win64-gpl-shared.</p></td>
+</tr>
+<tr class="row-odd"><td><p>Skip library</p></td>
+<td><p>If the user does not want to build any apps that depend on FFmpeg, they can set the CMake variable SKIP_FFMPEG_DEPENDENCY to TRUE to skip setting up FFmpeg libraries. This will exclude all applications that depend on FFmpeg. It can be set as: -DSKIP_FFMPEG_DEPENDENCY=TRUE.</p></td>
+</tr>
+</tbody>
+</table>
+<ul class="simple">
+<li><p>GLEW:</p></li>
+</ul>
+<p>If the SKIP_GL_DEPENDENCY CMake variable is set to TRUE, AppDecGL will not be generated.</p>
+<table class="table-no-stripes compact longtable docutils align-default">
+<colgroup>
+<col style="width: 25.9%" />
+<col style="width: 74.1%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Actions</p></th>
+<th class="head"><p>Overview</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Get package</p></td>
+<td><p>Get prebuilt GLEW binaries (version 2.1.0) from <a class="reference external" href="https://glew.sourceforge.net/">GLEW repository</a>.</p></td>
+</tr>
+<tr class="row-odd"><td><p>Set cmake variable</p></td>
+<td><p>During the CMake configuration phase (<a class="reference external" href="#building-samples-build-samples-windows">Section 1.3</a>), set the GLEW_DIR CMake variable to the extracted GLEW directory containing headers and libraries (i.e., the directory with bin, lib, and include subdirectories).</p></td>
+</tr>
+<tr class="row-even"><td></td>
+<td><p>To set the GLEW_DIR CMake variable correctly during configuration, use the following syntax with an absolute or properly referenced path to the extracted GLEW directory: -DGLEW_DIR=glew-2.1.0-win32/glew-2.1.0.</p></td>
+</tr>
+<tr class="row-odd"><td><p>Skip library</p></td>
+<td><p>If the user does not want to build any apps that depend on the GLEW library, they can set the CMake variable SKIP_GL_DEPENDENCY to TRUE to skip setting up the GLEW libraries. This excludes all GLEW-dependent applications. Use: -DSKIP_GL_DEPENDENCY=TRUE.</p></td>
+</tr>
+</tbody>
+</table>
+<ul class="simple">
+<li><p>FREEGLUT:</p></li>
+</ul>
+<p>If the SKIP_GL_DEPENDENCY CMake variable is set to TRUE, AppDecGL will not be generated.</p>
+<table class="table-no-stripes compact longtable docutils align-default">
+<colgroup>
+<col style="width: 25.9%" />
+<col style="width: 74.1%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Actions</p></th>
+<th class="head"><p>Overview</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Get package</p></td>
+<td><p>Get freeglut source code (version 3.4.0) from <a class="reference external" href="https://freeglut.sourceforge.net/">GLUT repository</a>. The download link for version 3.4.0 can be found under the Stable releases section.</p></td>
+</tr>
+<tr class="row-odd"><td><p>Build libraries</p></td>
+<td><p>Since freeglut does not distribute prebuilt libraries, users need to build the libraries from the fetched source code. Detailed instructions for building the libraries from the freeglut source code can be found in the README.cmake file in the freeglut source directory. Ensure both Release and Debug versions of freeglut are built, as both are required for building VideoCodecSDK apps.</p></td>
+</tr>
+<tr class="row-even"><td></td>
+<td><p>After a successful build the lib/Debug subdirectory in freeglut build directory will have freeglut_staticd.lib and freeglutd.lib files, and the lib/Release subdirectory in freeglut build directory will have freeglut.lib and freeglut_static.lib files.</p></td>
+</tr>
+<tr class="row-odd"><td><p>Set cmake variable</p></td>
+<td><p>During the CMake configuration phase (<a class="reference external" href="#building-samples-build-samples-windows">Section 1.3</a>), set the GLUT_DIR CMake variable to point to the freeglut build directory containing the locally built libraries (i.e., the directory that contains the bin and lib subdirectories).</p></td>
+</tr>
+<tr class="row-even"><td></td>
+<td><p>GLUT_DIR must point to the directory containing the bin and lib subdirectories (with locally built libraries). GLUT_INC must point to the directory containing the GL subdirectory, which includes the freeglut headers. -DGLUT_DIR=/freeglut-3.4.0/lib  -DGLUT_INC=/freeglut-3.4.0/include.</p></td>
+</tr>
+<tr class="row-odd"><td><p>Skip library</p></td>
+<td><p>If the user does not want to build any apps that depend on the freeglut library, they can set the CMake variable SKIP_GL_DEPENDENCY to TRUE to skip setting up the freeglut libraries. This will exclude all applications that depend on freeglut. It can be set as: -DSKIP_GL_DEPENDENCY=TRUE.</p></td>
+</tr>
+</tbody>
+</table>
+<ul class="simple">
+<li><p>Agility SDK:</p></li>
+</ul>
+<p>Visual Studio 2017 and above, Windows 20H1 or later is required for building and running AppEncD3D12 sample application.</p>
+<table class="table-no-stripes compact longtable docutils align-default">
+<colgroup>
+<col style="width: 31.0%" />
+<col style="width: 69.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Actions</p></th>
+<th class="head"><p>Overview</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Get Agility SDK</p></td>
+<td><p>Get the Agility SDK (D3D12SDKVersion 606 or later) from: <a class="reference external" href="https://devblogs.microsoft.com/directx/gettingstarted-dx12agility/">Agility SDK</a>.</p></td>
+</tr>
+<tr class="row-odd"><td><p>Set cmake variable</p></td>
+<td><p>AGILITY_SDK_BIN: To point to the directory containing the D3D12Core.dll for the platform.</p></td>
+</tr>
+<tr class="row-even"><td><p>Set environment variable</p></td>
+<td><p>DXSDK_DIR: pointing to the DirectX SDK root directory.</p></td>
+</tr>
+<tr class="row-odd"><td></td>
+<td><p>AGILITY_SDK_VER: D3D12SDKVersion of the Agility SDK version used.</p></td>
+</tr>
+<tr class="row-even"><td><p>Application Dependencies.</p></td>
+<td><p>On building AppEncD3D12, D3D12 directory which contains the required dlls from Agility SDK is created along with AppEncD3D12.exe. Make sure to copy the D3D12 directory along with AppEncD3D12.exe if the executable is moved to some other location.</p></td>
+</tr>
+</tbody>
+</table>
+<ul class="simple">
+<li><p>Plus all the requirements under <a class="reference internal" href="#system-requirements"><span class="std std-ref">System Requirements</span></a> and <a class="reference internal" href="#system-requirements-common-config-reqs"><span class="std std-ref">Common to all OS platforms</span></a></p></li>
+</ul>
+<p class="title sectiontitle rubric" id="linux-configuration-requirements">Linux Configuration Requirements</p>
+<ul class="simple">
+<li><p>X11 and OpenGL, GLUT, GLEW libraries for video playback and display</p></li>
+<li><p>CUDA Toolkit is mandatory if client has Video Codec SDK 8.1 or above on his/her machine.</p></li>
+</ul>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 25.9%" />
+<col style="width: 74.1%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Actions</p></th>
+<th class="head"><p>Overview</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>FFmpeg version</p></td>
+<td><p>The sample applications have been compiled and tested against the libraries and headers from FFmpeg 7.1.</p></td>
+</tr>
+<tr class="row-odd"><td><p>Configure FFmpeg</p></td>
+<td><p>While configuring FFmpeg on Linux, it is recommended not to use the –disable-decoders option. This configuration is known to cause a channel error (XID 31) when executing sample applications with certain clips or may result in unexpected behavior.</p></td>
+</tr>
+<tr class="row-even"><td><p>Build FFmpeg</p></td>
+<td><p>Add the directory (default: /usr/local/lib/pkgconfig) to the PKG_CONFIG_PATH environment variable. This is required by the Makefile to determine the include paths for the FFmpeg headers.</p></td>
+</tr>
+<tr class="row-odd"><td></td>
+<td><p>Add the directory where the FFmpeg libraries are installed to the LD_LIBRARY_PATH environment variable. This is required to resolve runtime dependencies on the FFmpeg libraries.</p></td>
+</tr>
+</tbody>
+</table>
+<ul class="simple">
+<li><p>Vulkan SDK.</p></li>
+</ul>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 25.9%" />
+<col style="width: 74.1%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Actions</p></th>
+<th class="head"><p>Overview</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Vulkan SDK</p></td>
+<td><p>The Vulkan SDK needs to be installed to build and run the AppMotionEstimationVkCuda sample application.</p></td>
+</tr>
+</tbody>
+</table>
+<ul class="simple">
+<li><p>Plus all the requirements under <a class="reference internal" href="#system-requirements"><span class="std std-ref">System Requirements</span></a> and <a class="reference internal" href="#system-requirements-common-config-reqs"><span class="std std-ref">Common to all OS platforms</span></a></p></li>
+</ul>
+<p class="title sectiontitle rubric" id="windows-subsystem-for-linux-wsl-configuration-requirements">Windows Subsystem for Linux (WSL) Configuration Requirements</p>
+<ul class="simple">
+<li><p>CUDA Toolkit is mandatory to use Video Codec SDK 8.1 and higher.</p></li>
+<li><p>Add the directory /usr/lib/wsl/lib to the PATH environment variable if it is not already included. This is required to ensure the path for the WSL libraries is available.</p></li>
+<li><p>FFmpeg: Libraries and headers from the FFmpeg project which can be downloaded and installed using the distribution’s package manager or compiled from source.</p></li>
+</ul>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 25.9%" />
+<col style="width: 74.1%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Actions</p></th>
+<th class="head"><p>Overview</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>FFmpeg version</p></td>
+<td><p>The sample applications have been compiled and tested against the libraries and headers from FFmpeg 7.1.</p></td>
+</tr>
+<tr class="row-odd"><td><p>Configure FFmpeg</p></td>
+<td><p>While configuring FFmpeg on Linux, it is recommended not to use the –disable-decoders option. This configuration is known to cause a channel error (XID 31) when executing sample applications with certain clips or may result in unexpected behavior.</p></td>
+</tr>
+<tr class="row-even"><td><p>Build FFmpeg</p></td>
+<td><p>Add the directory (default: /usr/local/lib/pkgconfig) to the PKG_CONFIG_PATH environment variable. This is required by the Makefile to determine the include paths for the FFmpeg headers.</p></td>
+</tr>
+<tr class="row-odd"><td></td>
+<td><p>Add the directory where the FFmpeg libraries are installed to the LD_LIBRARY_PATH environment variable. This is required to resolve runtime dependencies on the FFmpeg libraries.</p></td>
+</tr>
+</tbody>
+</table>
+<ul class="simple">
+<li><p>Plus all the requirements under <a class="reference internal" href="#system-requirements"><span class="std std-ref">System Requirements</span></a> and <a class="reference internal" href="#system-requirements-common-config-reqs"><span class="std std-ref">Common to all OS platforms</span></a></p></li>
+</ul>
+<p class="title sectiontitle rubric" id="jetson-linux-configuration-requirements">Jetson Linux Configuration Requirements</p>
+<ul class="simple">
+<li><p>CUDA Toolkit is mandatory on Jetson device.</p></li>
+</ul>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 25.9%" />
+<col style="width: 74.1%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Actions</p></th>
+<th class="head"><p>Overview</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>FFmpeg version</p></td>
+<td><p>The sample applications have been compiled and tested against the libraries and headers from FFmpeg 7.1.</p></td>
+</tr>
+<tr class="row-odd"><td><p>Configure FFmpeg</p></td>
+<td><p>While configuring FFmpeg on Linux, it is recommended not to use the –disable-decoders option. This configuration is known to cause a channel error (XID 31) when executing sample applications with certain clips or may result in unexpected behavior.</p></td>
+</tr>
+<tr class="row-even"><td><p>Build FFmpeg</p></td>
+<td><p>Add the directory (default: /usr/local/lib/pkgconfig) to the PKG_CONFIG_PATH environment variable. This is required by the Makefile to determine the include paths for the FFmpeg headers.</p></td>
+</tr>
+<tr class="row-odd"><td></td>
+<td><p>Add the directory where the FFmpeg libraries are installed to the LD_LIBRARY_PATH environment variable. This is required to resolve runtime dependencies on the FFmpeg libraries.</p></td>
+</tr>
+</tbody>
+</table>
+<ul class="simple">
+<li><p>Plus all the requirements under <a class="reference internal" href="#system-requirements"><span class="std std-ref">System Requirements</span></a> and <a class="reference internal" href="#system-requirements-common-config-reqs"><span class="std std-ref">Common to all OS platforms</span></a></p></li>
+</ul>
+<p class="title sectiontitle rubric" id="system-requirements-common-config-reqs">Common to all OS platforms</p>
+<ul class="simple">
+<li><p>CUDA toolkit can be downloaded from <a class="reference external" href="http://developer.nvidia.com/cuda/cuda-toolkit">http://developer.nvidia.com/cuda/cuda-toolkit</a></p></li>
+</ul>
+<p>The CUDA Toolkit and the related environment variables are optional to install if the client has Video Codec SDK 8.0. However, it is mandatory if the client has Video Codec SDK 8.1 or above installed on their machine. For newer GPU architectures, ensure that the downloaded CUDA toolkit version includes support for your specific GPU generation, as older toolkit versions may not support the latest GPU architectures.</p>
+<ul class="simple">
+<li><p>Vulkan SDK can be downloaded from <a class="reference external" href="https://vulkan.lunarg.com/sdk/home">https://vulkan.lunarg.com/sdk/home</a>. Alternatively, it can be installed by using the distribution’s package manager.</p></li>
+<li><p>NVIDIA does not provide support for FFmpeg; therefore, it is the responsibility of end users and developers, to stay informed about any vulnerabilities or quality bugs reported against FFmpeg. Users are encouraged to refer to the official FFmpeg website and community forums for the latest updates, patches, and support related to FFmpeg binaries and act as they deem necessary.</p></li>
+<li><p>Stub libraries (libnvcuvid.so and libnvidia-encode.so)</p></li>
+</ul>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 25.9%" />
+<col style="width: 74.1%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Actions</p></th>
+<th class="head"><p>Overview</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Stub libraries</p></td>
+<td><p>They have been included as part of the SDK package to aid in application development on systems where the NVIDIA driver has not been installed. The sample applications in the SDK will link against these stub libraries during the build process. However, users must ensure that the stub libraries are not referenced when running the sample applications. A driver compatible with this SDK must be installed for the sample applications to work correctly.</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="building-samples">
+<span id="id3"></span><h3><span class="section-number">1.4. </span>Building Samples<a class="headerlink" href="#building-samples" title="Link to this heading">#</a></h3>
+<p>Video Codec SDK uses CMake for building the samples. To build the samples, follow these steps:</p>
+<p class="title sectiontitle rubric" id="building-samples-build-samples-windows">Windows:</p>
+<ol class="arabic">
+<li><p>Install all dependencies for Windows, as specified in <a class="reference internal" href="#windows-configuration-requirements"><span class="std std-ref">Windows Configuration Requirements</span></a></p></li>
+<li><p>Extract the contents of the SDK into a folder.</p></li>
+<li><p>Create a subfolder named “build” in Video_Codec_SDK_x.y.z/Samples</p></li>
+<li><p>Open a command prompt in the “build” folder and run the following command, depending upon the version of Visual Studio on your computer.</p>
+<p><strong>Visual Studio 2022</strong>:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>cmake -G&quot;Visual Studio 17 2022&quot; -A&quot;x64&quot; -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=. ..
+</pre></div>
+</div>
+<p><strong>Visual Studio 2019</strong>:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>cmake -G&quot;Visual Studio 16 2019&quot; -A&quot;x64&quot; -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=. ..
+</pre></div>
+</div>
+<p><strong>Visual Studio 2017</strong>:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>cmake -G&quot;Visual Studio 15 2017&quot; -A&quot;x64&quot; -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=. ..
+</pre></div>
+</div>
+<p>To build VideoCodecSDK applications having FFmpeg, freeglut or GLEW dependencies, make sure that required headers and libraries are setup as mentioned in <a class="reference internal" href="#windows-configuration-requirements"><span class="std std-ref">Windows Configuration Requirements</span></a>.</p>
+<p>For AppEncD3D12 project to be generated, cmake variables AGILITY_SDK_BIN and AGILITY_SDK_VER have to be set as mentioned in <a class="reference internal" href="#windows-configuration-requirements"><span class="std std-ref">Windows Configuration Requirements</span></a>. Add the following options to the above commands to set this cmake variables:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>-DAGILITY_SDK_BIN=&lt;Path to Agility SDK folder containing D3D12Core.dll&gt; -DAGILITY_SDK_VER=&lt;D3D12SDKVersion of Agility SDK&gt;
+</pre></div>
+</div>
+<p>AppEncD3D12 project will not be generated if the above options are omitted.</p>
+</li>
+</ol>
+<p>This command will generate the necessary Visual Studio project files in the “build” folder. You can open NvCodec.sln file in Visual Studio and build. Alternatively, following command can be used to build the solution:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>cmake --build . --target install --config Release
+</pre></div>
+</div>
+<p>The application binaries will be available in Samples/build.</p>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>Only 64-bit (x64) builds are supported. Attempting to configure with a 32-bit target will result in a CMake error.</p>
+</div>
+<p class="title sectiontitle rubric" id="linux">Linux:</p>
+<ol class="arabic">
+<li><p>Install all dependencies for Linux, as specified in <a class="reference internal" href="#linux-configuration-requirements"><span class="std std-ref">Linux Configuration Requirements</span></a>.</p></li>
+<li><p>Extract the contents of the SDK into a folder.</p></li>
+<li><p>Create a subfolder named “build” in Video_Codec_SDK_x.y.z/Samples</p></li>
+<li><p>Use the following command to build samples in release mode:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>cmake -DCMAKE_BUILD_TYPE=Release ..
+make
+make install
+</pre></div>
+</div>
+</li>
+</ol>
+<p>This will build and install the binaries of the sample applications. The application binaries will be available in the folder <code class="docutils literal notranslate"><span class="pre">Samples/build</span></code>.</p>
+<p class="title sectiontitle rubric" id="windows-subsystem-for-linux">Windows Subsystem for Linux:</p>
+<ol class="arabic simple">
+<li><p>Install all dependencies for Windows Subsystem for Linux, as specified in <a class="reference internal" href="#windows-subsystem-for-linux-wsl-configuration-requirements"><span class="std std-ref">Windows Subsystem for Linux (WSL) Configuration Requirements</span></a>.</p></li>
+<li><p>Follow the build and installation steps provided above for Linux. Applications using OpenGL and Vulkan will not be built.</p></li>
+</ol>
+<p class="title sectiontitle rubric" id="jetson-linux">Jetson Linux:</p>
+<p><strong>When SDK is installed using zip package:</strong></p>
+<ol class="arabic">
+<li><p>Install all dependencies for Jetson Linux, as specified in <a class="reference internal" href="#jetson-linux-configuration-requirements"><span class="std std-ref">Jetson Linux Configuration Requirements</span></a>.</p></li>
+<li><p>Extract the contents of the SDK into a folder.</p></li>
+<li><p>Create a subfolder named “build” in Video_Codec_SDK_x.y.z/Samples</p></li>
+<li><p>Use the following command to build samples in release mode:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>cmake -DCMAKE_BUILD_TYPE=Release ..
+make
+make install
+</pre></div>
+</div>
+</li>
+</ol>
+<p><strong>When SDK is installed using APT:</strong></p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>In this case, all required dependencies for Jetson Linux will be installed using APT. The steps specified in <a class="reference internal" href="#jetson-linux-configuration-requirements"><span class="std std-ref">Jetson Linux Configuration Requirements</span></a> are not required.</p>
+</div>
+<ol class="arabic">
+<li><p>The SDK files are copied to /opt/nvidia/video-codec-sdk/x.y.z path.</p></li>
+<li><p>Create a folder named “build” in the system.</p></li>
+<li><p>Use the following command to build samples in release mode:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>cmake -DCMAKE_BUILD_TYPE=Release /opt/nvidia/video-codec-sdk/x.y.z/Samples
+make
+make install
+</pre></div>
+</div>
+</li>
+</ol>
+<p>This will build and install the binaries of the sample applications. The application binaries will be available in the created “build” folder.
+Applications using OpenGL will not be built.</p>
+<p class="title sectiontitle rubric" id="setting-up-cross-platform-support-for-jetson-linux">Setting Up Cross-Platform Support for Jetson Linux:</p>
+<p>This section explains how to set up the cross-compilation environment for building Samples on the host system. This section is applicable to Jetson Linux platform only.</p>
+<p>Key terminology:</p>
+<ul class="simple">
+<li><p><strong>Host system</strong> means the x86 based server where developers will build video codec SDK samples.</p></li>
+<li><p><strong>Jetson board</strong> means the target board where developers will run video codec SDK samples.</p></li>
+</ul>
+<p>Before proceeding with cross-compilation setup, ensure that video codec SDK samples can be built natively on the Jetson device without any issue. If a complete build environment has not been set up on the Jetson device, follow the build and installation steps provided in the <a class="reference internal" href="#jetson-linux"><span class="std std-ref">Jetson Linux</span></a> section above.</p>
+<p>Now, the following steps should be executed on your host system:</p>
+<ol class="arabic">
+<li><p><strong>Clone the target rootfs from Jetson device to the host system.</strong></p>
+<p>Follow the instructions in the section “Cloning rootfs with initrd” under Flashing Support for Jetson Thor in the Jetson Linux Driver Package Developer Guide:</p>
+<p><a class="reference external" href="https://docs.nvidia.com/jetson/archives/r38.4/DeveloperGuide/SD/FlashingSupportJetsonThor.html">https://docs.nvidia.com/jetson/archives/r38.4/DeveloperGuide/SD/FlashingSupportJetsonThor.html</a></p>
+<p>This process generates two sparse copies of the image: one with the name you specified (e.g., system.img) and another with a .raw suffix (e.g., system.img.raw).</p>
+<p>Mount the .raw image on the host system using the following commands:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>cd $HOME
+mkdir -p jetson
+sudo mount -t ext4 system.img.raw jetson
+</pre></div>
+</div>
+</li>
+<li><p><strong>Install cross-compilation tools on host system</strong> with the following commands:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>sudo apt install gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
+</pre></div>
+</div>
+</li>
+<li><p><strong>Install CUDA Toolkit 13.0 on the host system.</strong>
+CUDA toolkit on host system must match or be compatible with Jetson’s CUDA version.</p></li>
+<li><p><strong>Build samples on host system and deploy on target</strong></p>
+<ol class="loweralpha">
+<li><p>Extract the contents of the SDK into a folder.</p></li>
+<li><p>Create a subfolder named “build” in Video_Codec_SDK_x.y.z/Samples</p></li>
+<li><p>Use the following commands to build samples in release mode:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>cmake -DCMAKE_SYSROOT=$HOME/jetson \
+      -DCMAKE_TOOLCHAIN_FILE=../aarch64-cc-toolchain.cmake \
+      -DCMAKE_BUILD_TYPE=Release ..
+make
+make install
+</pre></div>
+</div>
+<p>This will build and install the binaries of the sample applications. The application binaries will be available in the folder <code class="docutils literal notranslate"><span class="pre">Samples/build</span></code>.</p>
+</li>
+<li><p>Copy the sample binaries to the Jetson device and run the applications on the target Jetson device.</p></li>
+</ol>
+</li>
+</ol>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Layout for several structures in NVENCODE API header have been changed in this SDK. Users are therefore recommended to populate the structures accordingly.</p>
+</div>
+</section>
+<section id="docker-container-support">
+<span id="id4"></span><h3><span class="section-number">1.5. </span>Docker Container Support<a class="headerlink" href="#docker-container-support" title="Link to this heading">#</a></h3>
+<p>For developers looking to quickly evaluate the NVIDIA Video Codec SDK sample applications or streamline their development environment setup, a Dockerfile is provided that packages the entire SDK along with its dependencies into a ready-to-use container. This enables faster onboarding and reproducible builds across different systems.</p>
+<p>The container includes:</p>
+<ul class="simple">
+<li><p>Pre-built SDK sample applications ready to use</p></li>
+<li><p>FFmpeg integration (both LGPL and GPL versions)</p></li>
+<li><p>Vulkan SDK for GPU-accelerated workflows</p></li>
+<li><p>Automated test vector generation for comprehensive codec testing</p></li>
+</ul>
+<p>To get started, clone the repository and follow the build instructions:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>git clone https://gitlab.com/nvidia/container-images/video-codec-sdk.git
+</pre></div>
+</div>
+<p>Full documentation, Dockerfile source, and detailed usage instructions are available at <a class="gitlab reference external" href="https://gitlab.com/nvidia/container-images/video-codec-sdk">nvidia/container-images/video-codec-sdk</a>.</p>
+<p class="rubric-h1 rubric">Notices</p>
+<p class="rubric-h2 rubric">Notice</p>
+<p>This document is provided for information purposes only and shall not be regarded as a warranty of a certain functionality, condition, or quality of a product. NVIDIA Corporation (“NVIDIA”) makes no representations or warranties, expressed or implied, as to the accuracy or completeness of the information contained in this document and assumes no responsibility for any errors contained herein. NVIDIA shall have no liability for the consequences or use of such information or for any infringement of patents or other rights of third parties that may result from its use. This document is not a commitment to develop, release, or deliver any Material (defined below), code, or functionality.</p>
+<p>NVIDIA reserves the right to make corrections, modifications, enhancements, improvements, and any other changes to this document, at any time without notice.</p>
+<p>Customer should obtain the latest relevant information before placing orders and should verify that such information is current and complete.</p>
+<p>NVIDIA products are sold subject to the NVIDIA standard terms and conditions of sale supplied at the time of order acknowledgment, unless otherwise agreed in an individual sales agreement signed by authorized representatives of NVIDIA and customer (“Terms of Sale”). NVIDIA hereby expressly objects to applying any customer general terms and conditions with regards to the purchase of the NVIDIA product referenced in this document. No contractual obligations are formed either directly or indirectly by this document.</p>
+<p>NVIDIA products are not designed, authorized, or warranted to be suitable for use in medical, military, aircraft, space, or life support equipment, nor in applications where failure or malfunction of the NVIDIA product can reasonably be expected to result in personal injury, death, or property or environmental damage. NVIDIA accepts no liability for inclusion and/or use of NVIDIA products in such equipment or applications and therefore such inclusion and/or use is at customer’s own risk.</p>
+<p>NVIDIA makes no representation or warranty that products based on this document will be suitable for any specified use. Testing of all parameters of each product is not necessarily performed by NVIDIA. It is customer’s sole responsibility to evaluate and determine the applicability of any information contained in this document, ensure the product is suitable and fit for the application planned by customer, and perform the necessary testing for the application in order to avoid a default of the application or the product. Weaknesses in customer’s product designs may affect the quality and reliability of the NVIDIA product and may result in additional or different conditions and/or requirements beyond those contained in this document. NVIDIA accepts no liability related to any default, damage, costs, or problem which may be based on or attributable to: (i) the use of the NVIDIA product in any manner that is contrary to this document or (ii) customer product designs.</p>
+<p class="rubric-h2 rubric">Trademarks</p>
+<p>NVIDIA, the NVIDIA logo, and cuBLAS, CUDA, CUDA Toolkit, cuDNN, DALI, DIGITS, DGX, DGX-1, DGX-2, DGX Station, DLProf, GPU, Jetson, Kepler, Maxwell, NCCL, Nsight Compute, Nsight Systems, NVCaffe, NVIDIA Deep Learning SDK, NVIDIA Developer Program, NVIDIA GPU Cloud, NVLink, NVSHMEM, PerfWorks, Pascal, SDK Manager, Tegra, TensorRT, TensorRT Inference Server, Tesla, TF-TRT, Triton Inference Server, Turing, and Volta are trademarks and/or registered trademarks of NVIDIA Corporation in the United States and other countries. Other company and product names may be trademarks of the respective companies with which they are associated.</p>
+</section>
+</section>
+</div>
+</section>\n</article>
+</body>
+</html>

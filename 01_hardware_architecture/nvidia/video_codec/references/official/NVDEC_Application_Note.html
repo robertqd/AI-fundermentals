@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>NVDEC Application Note (SDK 13.1)</title>
+<style>
+:root { color-scheme: light; }
+body { font-family: "Segoe UI", "WenQuanYi Micro Hei", "Noto Sans CJK SC", sans-serif;
+       max-width: 960px; margin: 24px auto; padding: 0 20px 64px; line-height: 1.65; color: #111827; }
+h1,h2,h3 { color: #0f4c81; }
+h1 { border-bottom: 2px solid #1a6fc4; padding-bottom: 8px; }
+pre, code { font-family: "JetBrains Mono", "Cascadia Code", ui-monospace, monospace; }
+pre { background: #0f172a; color: #e2e8f0; padding: 14px; overflow: auto; border-radius: 8px; }
+code { background: #f1f5f9; padding: 1px 5px; border-radius: 4px; }
+pre code { background: transparent; color: inherit; padding: 0; }
+table { border-collapse: collapse; width: 100%; margin: 12px 0 20px; font-size: 14px; }
+th, td { border: 1px solid #cbd5e1; padding: 6px 10px; text-align: left; }
+th { background: #e0f2fe; }
+blockquote { border-left: 4px solid #1a6fc4; margin-left: 0; padding: 4px 12px; background: #f8fafc; }
+img { max-width: 100%; }
+.meta { color: #64748b; font-size: 13px; }
+</style>
+</head>
+<body>
+<p class="meta">Offline copy of NVIDIA public docs. Source: <a href="https://docs.nvidia.com/video-technologies/video-codec-sdk/13.1/nvdec-application-note/">https://docs.nvidia.com/video-technologies/video-codec-sdk/13.1/nvdec-application-note/</a></p>\n<article>\n<section id="nvdec-application-note">
+<h1>NVDEC Application Note<a class="headerlink" href="#nvdec-application-note" title="Link to this heading">#</a></h1>
+<div class="toctree-wrapper compound">
+<span id="document-content"></span><section id="introduction">
+<h2><span class="section-number">1. </span>Introduction<a class="headerlink" href="#introduction" title="Link to this heading">#</a></h2>
+<p>NVIDIA GPUs and NVIDIA Jetson platforms contain a hardware-based decoder (referred to as NVDEC in this document) which provides fully accelerated hardware-based video decoding for several popular codecs. With complete decoding offloaded to NVDEC, the graphics engine and CPU are free for other operations.</p>
+<p>NVDEC supports much faster than real-time decoding which makes it suitable for transcoding scenarios in addition to video playback.</p>
+<p>The hardware capabilities available in NVDEC are exposed through APIs referred to as NVDECODE APIs in this document. This document provides information about the capabilities of the NVDEC engine and the features exposed through NVDECODE APIs.</p>
+</section>
+<section id="nvdec-capabilities">
+<h2><span class="section-number">2. </span>NVDEC Capabilities<a class="headerlink" href="#nvdec-capabilities" title="Link to this heading">#</a></h2>
+<p>At a high level, <a class="reference internal" href="#nvdec-hardware-capabilities"><span class="std std-ref">NVDEC Hardware Capabilities</span></a> summarizes the capabilities of the NVDEC engine exposed through NVDECODE APIs.</p>
+<table class="table-no-stripes compact longtable docutils align-default" id="nvdec-hardware-capabilities">
+<caption><span class="caption-text">NVDEC Hardware Capabilities</span><a class="headerlink" href="#nvdec-hardware-capabilities" title="Link to this table">#</a></caption>
+<colgroup>
+<col style="width: 45.5%" />
+<col style="width: 18.2%" />
+<col style="width: 18.2%" />
+<col style="width: 18.2%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Hardware Features</p></th>
+<th class="head"><p>Turing/GA100/Hopper GPUs</p></th>
+<th class="head"><p>GA10x<sup>3</sup> and Ada GPUs</p></th>
+<th class="head"><p>Blackwell GPUs/ Jetson Thor</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>VC1 Simple, Main &amp; Advanced profiles</p></td>
+<td><p>Y</p></td>
+<td><p>Y</p></td>
+<td><p>Y</p></td>
+</tr>
+<tr class="row-odd"><td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p>MPEG4 Simple and Advanced Simple Profiles</p></td>
+<td><p>Y</p></td>
+<td><p>Y</p></td>
+<td><p>Y</p></td>
+</tr>
+<tr class="row-odd"><td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p>MPEG2 Simple &amp; Main profiles</p></td>
+<td><p>Y</p></td>
+<td><p>Y</p></td>
+<td><p>Y</p></td>
+</tr>
+<tr class="row-odd"><td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p>H.264 Baseline, Main, High Profiles</p></td>
+<td><p>Y</p></td>
+<td><p>Y</p></td>
+<td><p>Y</p></td>
+</tr>
+<tr class="row-odd"><td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p>H.264 8192x8192 Decoding support</p></td>
+<td><p>N</p></td>
+<td><p>N</p></td>
+<td><p>Y</p></td>
+</tr>
+<tr class="row-odd"><td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p>H264 High10/High422 profiles</p></td>
+<td><p>N</p></td>
+<td><p>N</p></td>
+<td><p>Y</p></td>
+</tr>
+<tr class="row-odd"><td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p>VP8</p></td>
+<td><p>Y</p></td>
+<td><p>Y</p></td>
+<td><p>Y</p></td>
+</tr>
+<tr class="row-odd"><td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p>HEVC Main and Main 10 Profile<sup>1</sup></p></td>
+<td><p>Y</p></td>
+<td><p>Y</p></td>
+<td><p>Y</p></td>
+</tr>
+<tr class="row-odd"><td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p>HEVC 444 decoding</p></td>
+<td><p>Y</p></td>
+<td><p>Y</p></td>
+<td><p>Y</p></td>
+</tr>
+<tr class="row-odd"><td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p>HEVC main 422 10/12 profiles</p></td>
+<td><p>N</p></td>
+<td><p>N</p></td>
+<td><p>Y</p></td>
+</tr>
+<tr class="row-odd"><td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p>HEVC 8192x8192 Decoding support</p></td>
+<td><p>Y</p></td>
+<td><p>Y</p></td>
+<td><p>Y</p></td>
+</tr>
+<tr class="row-odd"><td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p>VP9 8192x8192 Decoding support</p></td>
+<td><p>Y</p></td>
+<td><p>Y</p></td>
+<td><p>Y</p></td>
+</tr>
+<tr class="row-odd"><td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p>VP9 Profile 0<sup>1</sup></p></td>
+<td><p>Y</p></td>
+<td><p>Y</p></td>
+<td><p>Y</p></td>
+</tr>
+<tr class="row-odd"><td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p>Multiple NVDECs<sup>2</sup></p></td>
+<td><p>Y</p></td>
+<td><p>Y</p></td>
+<td><p>Y</p></td>
+</tr>
+<tr class="row-odd"><td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p>AV1 Main Profile decoding</p></td>
+<td><p>N</p></td>
+<td><p>Y</p></td>
+<td><p>Y</p></td>
+</tr>
+<tr class="row-odd"><td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<ul class="simple">
+<li><p><strong>Y</strong>: Supported, <strong>N</strong>: Unsupported</p></li>
+<li><p><sup>1</sup>: Present in select GPUs</p></li>
+<li><p><sup>2</sup>: Present in select GPUs</p></li>
+<li><p><sup>3</sup>: GA10x GPUs include all GPUs based on Ampere architecture except GA100</p></li>
+</ul>
+</section>
+<section id="nvdec-performance">
+<h2><span class="section-number">3. </span>NVDEC Performance<a class="headerlink" href="#nvdec-performance" title="Link to this heading">#</a></h2>
+<p>NVDEC natively supports multiple hardware decoding contexts with negligible context-switching penalty. As a result, subject to the hardware performance limit and available memory, an application can decode multiple videos simultaneously.</p>
+<p>The hardware and software maintain the context for each decoding session, allowing many simultaneous decoding sessions to run in parallel with minimal context switch penalty. <a class="reference internal" href="#nvdec-decoding-performance"><span class="std std-ref">NVDEC Decoding Performance</span></a> provides indicative data of the decoding performance of NVDEC in GPUs based on Turing, Ampere, Ada, and Blackwell architectures as well as Jetson platforms based on Thor for AV1, HEVC, VP9, and H.264 encoded bitstreams. The performance varies across GPU classes (e.g. Quadro, Tesla), and scales (almost) linearly with the clock speeds for each hardware.</p>
+<table class="table-no-stripes compact docutils align-left" id="nvdec-decoding-performance">
+<caption><span class="caption-text">NVDEC Decoding Performance (Indicative)</span><a class="headerlink" href="#nvdec-decoding-performance" title="Link to this table">#</a></caption>
+<colgroup>
+<col style="width: 33.3%" />
+<col style="width: 33.3%" />
+<col style="width: 33.3%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><div class="line-block">
+<div class="line">GPU Architecture/</div>
+<div class="line">Jetson Platform</div>
+</div>
+</th>
+<th class="head"><div class="line-block">
+<div class="line">Codec</div>
+<div class="line"><br /></div>
+</div>
+</th>
+<th class="head"><div class="line-block">
+<div class="line">Performance in frames/second</div>
+<div class="line"><br /></div>
+</div>
+</th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td rowspan="5"><p>Turing</p></td>
+<td><p>H.264</p></td>
+<td><p>771</p></td>
+</tr>
+<tr class="row-odd"><td><p>VP9</p></td>
+<td><p>932</p></td>
+</tr>
+<tr class="row-even"><td><p>VP9 10 bit</p></td>
+<td><p>925</p></td>
+</tr>
+<tr class="row-odd"><td><p>HEVC</p></td>
+<td><p>1316</p></td>
+</tr>
+<tr class="row-even"><td><p>HEVC Main10</p></td>
+<td><p>1158</p></td>
+</tr>
+<tr class="row-odd"><td rowspan="6"><p>Ampere</p></td>
+<td><p>H.264</p></td>
+<td><p>748</p></td>
+</tr>
+<tr class="row-even"><td><p>VP9</p></td>
+<td><p>1075</p></td>
+</tr>
+<tr class="row-odd"><td><p>VP9 10 bit</p></td>
+<td><p>1120</p></td>
+</tr>
+<tr class="row-even"><td><p>HEVC</p></td>
+<td><p>1415</p></td>
+</tr>
+<tr class="row-odd"><td><p>HEVC Main10</p></td>
+<td><p>1299</p></td>
+</tr>
+<tr class="row-even"><td><p>AV1</p></td>
+<td><p>790</p></td>
+</tr>
+<tr class="row-odd"><td rowspan="6"><p>Ada</p></td>
+<td><p>H.264</p></td>
+<td><p>903</p></td>
+</tr>
+<tr class="row-even"><td><p>VP9</p></td>
+<td><p>1290</p></td>
+</tr>
+<tr class="row-odd"><td><p>VP9 10 bit</p></td>
+<td><p>1342</p></td>
+</tr>
+<tr class="row-even"><td><p>HEVC</p></td>
+<td><p>1641</p></td>
+</tr>
+<tr class="row-odd"><td><p>HEVC Main10</p></td>
+<td><p>1520</p></td>
+</tr>
+<tr class="row-even"><td><p>AV1</p></td>
+<td><p>1018</p></td>
+</tr>
+<tr class="row-odd"><td rowspan="6"><p>Blackwell</p></td>
+<td><p>H.264</p></td>
+<td><p>2172</p></td>
+</tr>
+<tr class="row-even"><td><p>VP9</p></td>
+<td><p>1445</p></td>
+</tr>
+<tr class="row-odd"><td><p>VP9 10 bit</p></td>
+<td><p>1498</p></td>
+</tr>
+<tr class="row-even"><td><p>HEVC</p></td>
+<td><p>1872</p></td>
+</tr>
+<tr class="row-odd"><td><p>HEVC Main10</p></td>
+<td><p>1818</p></td>
+</tr>
+<tr class="row-even"><td><p>AV1</p></td>
+<td><p>1119</p></td>
+</tr>
+<tr class="row-odd"><td rowspan="6"><p>Jetson Thor</p></td>
+<td><p>H.264</p></td>
+<td><p>1434</p></td>
+</tr>
+<tr class="row-even"><td><p>VP9</p></td>
+<td><p>1019</p></td>
+</tr>
+<tr class="row-odd"><td><p>VP9 10 bit</p></td>
+<td><p>1016</p></td>
+</tr>
+<tr class="row-even"><td><p>HEVC</p></td>
+<td><p>1293</p></td>
+</tr>
+<tr class="row-odd"><td><p>HEVC Main10</p></td>
+<td><p>1130</p></td>
+</tr>
+<tr class="row-even"><td><p>AV1</p></td>
+<td><p>794</p></td>
+</tr>
+</tbody>
+</table>
+<ul class="simple">
+<li><p>All the measurement is done on the highest video clocks as reported by nvidia-smi (i.e. 1860 MHz, 1665 MHz, 2160 MHz, 2362 MHz for Turing, Ampere, Ada, and Blackwell GPUs respectively and 1691 MHz for Jetson Thor platform). The performance should scale according to the video clocks as reported by nvidia-smi on target GPU. Information on nvidia-smi can be found at <a class="reference external" href="https://developer.nvidia.com/nvidia-system-management-interface">https://developer.nvidia.com/nvidia-system-management-interface</a>.</p></li>
+<li><p>Resolution/Input format: 1920x1080/YUV 4:2:0</p></li>
+<li><p>Software: Windows 11/Jetson Linux 38.2 for GPUs/Jetson platform, Video Codec SDK v13.1</p></li>
+<li><p>Hopper and GA100 GPUs contain NVDEC with same architecture as Turing. As a result, the decoding performance on Hopper and GA100 GPUs is the same as that of Turing GPUs, scaled by the clock speed. To view the clocks available on your GPU, please use the tool nvidia-smi included with the NVIDIA driver.</p></li>
+</ul>
+<p>Some NVIDIA GPUs may have multiple NVDEC engines per chip. Refer to the NVIDIA Video Codec SDK Support Matrix for details. This increases the aggregate decoder performance of the GPU. NVIDIA driver takes care of load balancing among multiple NVDEC engines on the chip, so that applications don’t require any special code to take advantage of multiple decoders and automatically benefit from higher decoder capacity on higher-end GPU hardware. The decode performance listed in <a class="reference internal" href="#nvdec-decoding-performance"><span class="std std-ref">NVDEC Decoding Performance</span></a> is given per NVDEC engine. Thus, if a GPU has multiple NVDECs, multiply the corresponding number in <a class="reference internal" href="#nvdec-decoding-performance"><span class="std std-ref">NVDEC Decoding Performance</span></a> by the number of NVDECs per chip to get aggregate maximum performance (applicable only when running multiple simultaneous decode sessions). Note that performance with a single decoding session cannot exceed performance per NVDEC, regardless of the number of NVDECs present on the GPU.</p>
+</section>
+<section id="programming-nvdec">
+<h2><span class="section-number">4. </span>Programming NVDEC<a class="headerlink" href="#programming-nvdec" title="Link to this heading">#</a></h2>
+<p>The NVDECODE API provides access to the video decoding features of NVDEC described in the previous chapters. The API includes implementations of commonly used post-processing operations such as scaling, cropping, aspect ratio conversion, deinterlacing and color space conversion to the decoded output.</p>
+<p>Refer to the SDK release notes for information regarding the required driver version.</p>
+<p>Various capabilities of NVDEC are exposed to the application software via the NVIDIA proprietary application programming interface (NVDECODE APIs). Refer to the Video Decoder Programming guide for details on using these APIs.</p>
+<p>For a complete list of GPUs supporting hardware accelerated decoding refer to <a class="reference external" href="https://developer.nvidia.com/nvidia-video-codec-sdk">https://developer.nvidia.com/nvidia-video-codec-sdk</a>.</p>
+</section>
+<section id="ffmpeg-support">
+<h2><span class="section-number">5. </span>FFmpeg Support<a class="headerlink" href="#ffmpeg-support" title="Link to this heading">#</a></h2>
+<p>FFmpeg is the most popular multimedia transcoding tool used extensively for video and audio transcoding. Note that FFmpeg is an open-source project and its usage is governed by specific licenses and terms and conditions.</p>
+<p>The video hardware accelerators in NVIDIA GPUs can be effectively used with FFmpeg to significantly speed up the video decoding, encoding and end-to-end transcoding at very high performance.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>FFmpeg with HW acceleration is supported on the Jetson Thor platform (including Jetson T4000 and T5000 modules) with JetPack 7.1 and later.</p>
+</div>
+<p class="rubric-h1 rubric">Notices</p>
+<p class="rubric-h2 rubric">Notice</p>
+<p>This document is provided for information purposes only and shall not be regarded as a warranty of a certain functionality, condition, or quality of a product. NVIDIA Corporation (“NVIDIA”) makes no representations or warranties, expressed or implied, as to the accuracy or completeness of the information contained in this document and assumes no responsibility for any errors contained herein. NVIDIA shall have no liability for the consequences or use of such information or for any infringement of patents or other rights of third parties that may result from its use. This document is not a commitment to develop, release, or deliver any Material (defined below), code, or functionality.</p>
+<p>NVIDIA reserves the right to make corrections, modifications, enhancements, improvements, and any other changes to this document, at any time without notice.</p>
+<p>Customer should obtain the latest relevant information before placing orders and should verify that such information is current and complete.</p>
+<p>NVIDIA products are sold subject to the NVIDIA standard terms and conditions of sale supplied at the time of order acknowledgment, unless otherwise agreed in an individual sales agreement signed by authorized representatives of NVIDIA and customer (“Terms of Sale”). NVIDIA hereby expressly objects to applying any customer general terms and conditions with regards to the purchase of the NVIDIA product referenced in this document. No contractual obligations are formed either directly or indirectly by this document.</p>
+<p>NVIDIA products are not designed, authorized, or warranted to be suitable for use in medical, military, aircraft, space, or life support equipment, nor in applications where failure or malfunction of the NVIDIA product can reasonably be expected to result in personal injury, death, or property or environmental damage. NVIDIA accepts no liability for inclusion and/or use of NVIDIA products in such equipment or applications and therefore such inclusion and/or use is at customer’s own risk.</p>
+<p>NVIDIA makes no representation or warranty that products based on this document will be suitable for any specified use. Testing of all parameters of each product is not necessarily performed by NVIDIA. It is customer’s sole responsibility to evaluate and determine the applicability of any information contained in this document, ensure the product is suitable and fit for the application planned by customer, and perform the necessary testing for the application in order to avoid a default of the application or the product. Weaknesses in customer’s product designs may affect the quality and reliability of the NVIDIA product and may result in additional or different conditions and/or requirements beyond those contained in this document. NVIDIA accepts no liability related to any default, damage, costs, or problem which may be based on or attributable to: (i) the use of the NVIDIA product in any manner that is contrary to this document or (ii) customer product designs.</p>
+<p class="rubric-h2 rubric">Trademarks</p>
+<p>NVIDIA, the NVIDIA logo, and cuBLAS, CUDA, CUDA Toolkit, cuDNN, DALI, DIGITS, DGX, DGX-1, DGX-2, DGX Station, DLProf, GPU, Jetson, Kepler, Maxwell, NCCL, Nsight Compute, Nsight Systems, NVCaffe, NVIDIA Deep Learning SDK, NVIDIA Developer Program, NVIDIA GPU Cloud, NVLink, NVSHMEM, PerfWorks, Pascal, SDK Manager, Tegra, TensorRT, TensorRT Inference Server, Tesla, TF-TRT, Triton Inference Server, Turing, and Volta are trademarks and/or registered trademarks of NVIDIA Corporation in the United States and other countries. Other company and product names may be trademarks of the respective companies with which they are associated.</p>
+</section>
+</div>
+</section>\n</article>
+</body>
+</html>

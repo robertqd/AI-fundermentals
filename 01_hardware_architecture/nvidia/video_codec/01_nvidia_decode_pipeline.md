@@ -472,9 +472,11 @@ Nsight Systems 时间线上，NVDEC 活动不会显示成普通 CUDA Kernel。�
 
 ## 14. 参考资料
 
-- [NVDEC Video Decoder API Programming Guide](https://docs.nvidia.com/video-technologies/video-codec-sdk/13.1/nvdec-video-decoder-api-prog-guide/)
-- [NVDEC Application Note](https://docs.nvidia.com/video-technologies/video-codec-sdk/13.1/nvdec-application-note/index.html)
+离线包（含本文 HTML 与官方 SDK 13.1 文档副本）：[nvidia_nvdec_decode_docs.zip](references/nvidia_nvdec_decode_docs.zip)。目录说明见 [references/README.md](references/README.md)。
+
+- [NVDEC Video Decoder API Programming Guide](https://docs.nvidia.com/video-technologies/video-codec-sdk/13.1/nvdec-video-decoder-api-prog-guide/)（[本地 Markdown](references/official/NVDEC_Video_Decoder_API_Programming_Guide.md)）
+- [NVDEC Application Note](https://docs.nvidia.com/video-technologies/video-codec-sdk/13.1/nvdec-application-note/)（[本地 Markdown](references/official/NVDEC_Application_Note.md)）
 - [NVIDIA Video Codec SDK 13.1：Zero-Copy Transcode](https://developer.nvidia.com/blog/nvidia-video-codec-sdk-13-1-zero-copy-transcode-av1-b-frames-and-frame-accurate-seek/)
 - [Video Codec SDK 下载与 GPU 支持矩阵](https://developer.nvidia.com/video-codec-sdk)
+- [Using FFmpeg with NVIDIA GPU Hardware Acceleration](https://docs.nvidia.com/video-technologies/video-codec-sdk/13.1/ffmpeg-with-nvidia-gpu/)（[本地 Markdown](references/official/Using_FFmpeg_with_NVIDIA_GPU_Hardware_Acceleration.md)）
 - [NVIDIA DALI 文档](https://docs.nvidia.com/deeplearning/dali/user-guide/docs/)
-- [FFmpeg NVDEC / NVENC](https://developer.nvidia.com/ffmpeg)

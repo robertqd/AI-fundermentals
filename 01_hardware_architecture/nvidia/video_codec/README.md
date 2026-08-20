@@ -17,10 +17,12 @@ NVIDIA GPU 并不只是 CUDA Core 和 Tensor Core。从 Fermi 开始，芯片上
 ## 2. 文档导航
 
 - **[NVIDIA 硬件解码流程：从 NVDEC 到 AI 推理输入](01_nvidia_decode_pipeline.md)**：完整讲解 NVDEC 硬件、三阶段流水线（Demux / Parser / Decoder）、NVDECODE API 调用顺序、生产者-消费者线程模型、显存路径、图像解码（NVJPEG）、以及 DALI / FFmpeg / DeepStream 等上层框架的落地方式。
+- **[离线文档包 / 官方副本](references/README.md)**：中文指南与 NVIDIA Video Codec SDK 13.1 公开文档的离线 ZIP、HTML、Markdown，可直接下载阅读。
 
 ## 3. 相关资源
 
 - [深入理解 GPU 架构](../understand_gpu_architecture/README.md) — 先看清 SM、显存层次，再理解 NVDEC 作为独立引擎的位置
 - [多模态推理优化](../../../09_inference_system/reference_design/10-多模态推理优化.md) — 解码之后，视觉 token 如何进入推理服务
-- [NVIDIA Video Codec SDK](https://developer.nvidia.com/video-codec-sdk) — 官方 SDK、能力矩阵与样例
+- [离线下载：nvidia_nvdec_decode_docs.zip](references/nvidia_nvdec_decode_docs.zip) — 中文指南 + SDK 13.1 官方文档离线包
+- [NVIDIA Video Codec SDK](https://developer.nvidia.com/video-codec-sdk) — 官方 SDK、能力矩阵与样例（需登录下载安装包）
 - [NVDEC Video Decoder API Programming Guide](https://docs.nvidia.com/video-technologies/video-codec-sdk/13.1/nvdec-video-decoder-api-prog-guide/) — NVDECODE API 权威参考

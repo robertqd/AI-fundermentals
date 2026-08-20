@@ -1,0 +1,1156 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Using FFmpeg with NVIDIA GPU Hardware Acceleration (SDK 13.1)</title>
+<style>
+:root { color-scheme: light; }
+body { font-family: "Segoe UI", "WenQuanYi Micro Hei", "Noto Sans CJK SC", sans-serif;
+       max-width: 960px; margin: 24px auto; padding: 0 20px 64px; line-height: 1.65; color: #111827; }
+h1,h2,h3 { color: #0f4c81; }
+h1 { border-bottom: 2px solid #1a6fc4; padding-bottom: 8px; }
+pre, code { font-family: "JetBrains Mono", "Cascadia Code", ui-monospace, monospace; }
+pre { background: #0f172a; color: #e2e8f0; padding: 14px; overflow: auto; border-radius: 8px; }
+code { background: #f1f5f9; padding: 1px 5px; border-radius: 4px; }
+pre code { background: transparent; color: inherit; padding: 0; }
+table { border-collapse: collapse; width: 100%; margin: 12px 0 20px; font-size: 14px; }
+th, td { border: 1px solid #cbd5e1; padding: 6px 10px; text-align: left; }
+th { background: #e0f2fe; }
+blockquote { border-left: 4px solid #1a6fc4; margin-left: 0; padding: 4px 12px; background: #f8fafc; }
+img { max-width: 100%; }
+.meta { color: #64748b; font-size: 13px; }
+</style>
+</head>
+<body>
+<p class="meta">Offline copy of NVIDIA public docs. Source: <a href="https://docs.nvidia.com/video-technologies/video-codec-sdk/13.1/ffmpeg-with-nvidia-gpu/">https://docs.nvidia.com/video-technologies/video-codec-sdk/13.1/ffmpeg-with-nvidia-gpu/</a></p>\n<article>\n<section id="using-ffmpeg-with-nvidia-gpu-hardware-acceleration">
+<h1>Using FFmpeg with NVIDIA GPU Hardware Acceleration<a class="headerlink" href="#using-ffmpeg-with-nvidia-gpu-hardware-acceleration" title="Link to this heading">#</a></h1>
+<div class="toctree-wrapper compound">
+<span id="document-content"></span><section id="introduction">
+<h2><span class="section-number">1. </span>Introduction<a class="headerlink" href="#introduction" title="Link to this heading">#</a></h2>
+<p>Fully-accelerated hardware video encoding and decoding is supported on NVIDIA® GPUs of the Turing generation or newer. The hardware encoder and hardware decoder are referred to as NVENC and NVDEC, respectively, throughout this document.</p>
+<p>The hardware capabilities of NVENC and NVDEC are exposed in the <a class="reference external" href="https://developer.nvidia.com/video-codec-sdk">NVIDIA Video Codec SDK</a> through APIs (referred to as NVENCODE API and NVDECODE API), which provide access to the hardware acceleration features of NVENC and NVDEC.</p>
+<p>FFmpeg is the most popular multimedia transcoding software and is used extensively for video and audio transcoding. By leveraging NVENC and NVDEC with FFmpeg, you can significantly accelerate video decoding, encoding, and end-to-end transcoding workflows.</p>
+<p>This document explains how to use FFmpeg with NVIDIA GPU hardware acceleration through the APIs exposed in the NVIDIA Video Codec SDK.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>FFmpeg with HW acceleration is supported on the Jetson Thor platform (including Jetson T4000 and T5000 modules) with JetPack 7.1 and later.</p>
+</div>
+</section>
+<section id="ffmpeg-feature-matrix">
+<h2><span class="section-number">2. </span>FFmpeg Feature Matrix<a class="headerlink" href="#ffmpeg-feature-matrix" title="Link to this heading">#</a></h2>
+<p>The following tables summarize NVENC (encoding) and decoding (NVDEC and CUVID) capabilities across major FFmpeg versions. Both decoding interfaces use the same NVDEC hardware.</p>
+<section id="codec-support-by-ffmpeg-version">
+<h3><span class="section-number">2.1. </span>Codec Support by FFmpeg Version<a class="headerlink" href="#codec-support-by-ffmpeg-version" title="Link to this heading">#</a></h3>
+<table class="longtable docutils align-left" id="nvenc-features-by-version">
+<caption><span class="caption-text">NVENC Features by FFmpeg Version</span><a class="headerlink" href="#nvenc-features-by-version" title="Link to this table">#</a></caption>
+<colgroup>
+<col style="width: 12.0%" />
+<col style="width: 88.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>FFmpeg Version</p></th>
+<th class="head"><p>Major NVENC Features</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>2.6</p></td>
+<td><p>Initial NVENC with support for <strong>H.264 4:2:0 8-bit</strong></p></td>
+</tr>
+<tr class="row-odd"><td><p>2.7</p></td>
+<td><p>NVENC with support for <strong>HEVC 4:2:0 8-bit</strong></p></td>
+</tr>
+<tr class="row-even"><td><p>2.8</p></td>
+<td><p>2-pass encoding, YV12 support, <strong>H.264 4:4:4 8-bit</strong></p></td>
+</tr>
+<tr class="row-odd"><td><p>3.0</p></td>
+<td><p>Better DTS generation, B-frame fixes</p></td>
+</tr>
+<tr class="row-even"><td><p>3.1</p></td>
+<td><p>CUDA frames support, lossless encoding</p></td>
+</tr>
+<tr class="row-odd"><td><p>3.2</p></td>
+<td><p>Lookahead, <strong>HEVC 10-bit</strong>, <strong>HEVC 4:4:4</strong></p></td>
+</tr>
+<tr class="row-even"><td><p>3.3</p></td>
+<td><p>Per-frame QP control, Bluray compatibility, dynamic CUDA loading</p></td>
+</tr>
+<tr class="row-odd"><td><p>3.4</p></td>
+<td><p>Weighted prediction, fractional CQ</p></td>
+</tr>
+<tr class="row-even"><td><p>4.0</p></td>
+<td><p>D3D11 surface input, H.264 B-frames as reference, P016 format</p></td>
+</tr>
+<tr class="row-odd"><td><p>4.1</p></td>
+<td><p>A53 closed captions, dynamic bitrate/aspect ratio changes</p></td>
+</tr>
+<tr class="row-even"><td><p>4.2</p></td>
+<td><p>HEVC B-frames as reference</p></td>
+</tr>
+<tr class="row-odd"><td><p>4.3</p></td>
+<td><p>CQ mode improvements, multiple reference frames</p></td>
+</tr>
+<tr class="row-even"><td><p>4.4</p></td>
+<td><p>HEVC timecode, more SEI data support</p></td>
+</tr>
+<tr class="row-odd"><td><p>5.0</p></td>
+<td><p>Intra refresh, chroma QP offsets, user data unregistered SEI</p></td>
+</tr>
+<tr class="row-even"><td><p>5.1</p></td>
+<td><p>Additional 10-bit RGB formats</p></td>
+</tr>
+<tr class="row-odd"><td><p>6.0</p></td>
+<td><p><strong>AV1 4:2:0 8-bit and 10-bit</strong></p></td>
+</tr>
+<tr class="row-even"><td><p>6.1</p></td>
+<td><p>Slice size limiting, RGB subsampling control</p></td>
+</tr>
+<tr class="row-odd"><td><p>7.0</p></td>
+<td><p>SDK 12.2 bit depth API</p></td>
+</tr>
+<tr class="row-even"><td><p>7.1</p></td>
+<td><p>Split-frame encoding, unidirectional B-frames, UHQ tune, HEVC temporal filtering</p></td>
+</tr>
+<tr class="row-odd"><td><p>8.0</p></td>
+<td><p><strong>MV-HEVC, HEVC/H.264 4:2:2 8-bit/10-bit, H.264 4:2:0 10-bit</strong></p></td>
+</tr>
+</tbody>
+</table>
+<table class="longtable docutils align-left" id="nvdec-cuvid-features-by-version">
+<caption><span class="caption-text">NVDEC/CUVID Features by FFmpeg Version</span><a class="headerlink" href="#nvdec-cuvid-features-by-version" title="Link to this table">#</a></caption>
+<colgroup>
+<col style="width: 12.0%" />
+<col style="width: 88.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>FFmpeg Version</p></th>
+<th class="head"><p>Major NVDEC/CUVID Features</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>3.1</p></td>
+<td><p>Initial CUVID decoder with <strong>H.264 4:2:0 8-bit</strong>, <strong>HEVC 4:2:0 8-bit</strong></p></td>
+</tr>
+<tr class="row-odd"><td><p>3.2</p></td>
+<td><p>Deinterlacing, <strong>HEVC 4:2:0 10-bit</strong>, <strong>VP8/VP9/VC-1/MPEG-1/MPEG-2/MPEG-4 4:2:0 8-bit</strong></p></td>
+</tr>
+<tr class="row-even"><td><p>3.3</p></td>
+<td><p>Cropping/resizing, P010/P016 support, dynamic CUDA loading</p></td>
+</tr>
+<tr class="row-odd"><td><p>3.4</p></td>
+<td><p>Capability checks, hw_device_ctx API</p></td>
+</tr>
+<tr class="row-even"><td><p>4.0</p></td>
+<td><p><strong>NVDEC hwaccels (H.264, HEVC, VC-1, MPEG-1/2/4, VP8, VP9)</strong>, <strong>HEVC 4:2:0 12-bit</strong>, <strong>MJPEG 4:2:0 8-bit</strong></p></td>
+</tr>
+<tr class="row-odd"><td><p>4.1</p></td>
+<td><p>CUDA yadif deinterlacer, frame pool optimizations</p></td>
+</tr>
+<tr class="row-even"><td><p>4.2</p></td>
+<td><p><strong>HEVC 4:4:4 8-bit/10-bit/12-bit</strong></p></td>
+</tr>
+<tr class="row-odd"><td><p>4.3</p></td>
+<td><p>Support for aarch64</p></td>
+</tr>
+<tr class="row-even"><td><p>4.4</p></td>
+<td><p><strong>AV1 4:2:0 8-bit/10-bit</strong>, film grain</p></td>
+</tr>
+<tr class="row-odd"><td><p>5.0</p></td>
+<td><p>Decoder optimization</p></td>
+</tr>
+<tr class="row-even"><td><p>5.1</p></td>
+<td><p>AV1 fixes</p></td>
+</tr>
+<tr class="row-odd"><td><p>6.0</p></td>
+<td><p>Frame copy improvements, buffer management</p></td>
+</tr>
+<tr class="row-even"><td><p>6.1</p></td>
+<td><p>RefStruct API, dynamic surface allocation, MPEG fixes</p></td>
+</tr>
+<tr class="row-odd"><td><p>7.0</p></td>
+<td><p>RefStruct-pool API, bitstream management</p></td>
+</tr>
+<tr class="row-even"><td><p>7.1</p></td>
+<td><p>Pixel format improvements</p></td>
+</tr>
+<tr class="row-odd"><td><p>8.0</p></td>
+<td><p><strong>H.264 4:2:0 10-bit</strong>, <strong>H.264 4:2:2 8-bit/10-bit</strong>, <strong>HEVC 4:2:2 8-bit/10-bit/12-bit</strong></p></td>
+</tr>
+</tbody>
+</table>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>CUVID is both a parser and a decoder; NVDEC is a decoding-only layer. See the <a class="reference internal" href="#video-decoding"><span class="std std-ref">Video Decoding</span></a> section for how the two approaches differ, supported codecs, and when to use each.</p>
+</div>
+</section>
+</section>
+<section id="setup">
+<h2><span class="section-number">3. </span>Setup<a class="headerlink" href="#setup" title="Link to this heading">#</a></h2>
+<section id="hardware-setup">
+<h3><span class="section-number">3.1. </span>Hardware Setup<a class="headerlink" href="#hardware-setup" title="Link to this heading">#</a></h3>
+<p>FFmpeg with NVIDIA GPU acceleration requires a system with a supported NVIDIA GPU and either Linux, Windows, or Windows Subsystem for Linux (WSL) operating system.</p>
+<p><strong>Requirements:</strong></p>
+<ul class="simple">
+<li><p>A supported NVIDIA GPU with NVENC and NVDEC capabilities (Turing generation or newer)</p></li>
+<li><p>Appropriate NVIDIA GPU driver installed for your operating system</p></li>
+<li><p>For a complete list of supported GPUs and their codec capabilities, refer to the <a class="reference external" href="https://developer.nvidia.com/video-encode-decode-support-matrix">Video Encode and Decode Support Matrix</a>.</p></li>
+</ul>
+<p>Throughout this document, it is assumed that your system has a GPU with both NVENC and NVDEC capabilities and that the appropriate NVIDIA drivers are installed.</p>
+<div class="admonition tip">
+<p class="admonition-title">Tip</p>
+<p>To verify your GPU and driver installation, use <code class="docutils literal notranslate"><span class="pre">nvidia-smi</span></code> command in your terminal or command prompt.</p>
+</div>
+</section>
+<section id="software-setup">
+<h3><span class="section-number">3.2. </span>Software Setup<a class="headerlink" href="#software-setup" title="Link to this heading">#</a></h3>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Before using FFmpeg, it is recommended to refer to the FFmpeg documentation, note the version of the Video Codec SDK it uses, and ensure that the minimum GPU driver required for that version of the Video Codec SDK is installed.</p>
+</div>
+<p>CUDA is available through the NVIDIA driver API. The CUDA runtime library is not required to run the examples in this document. With NPP deprecated in FFmpeg (see the Compiling FFmpeg section), all of those examples use only the driver API.</p>
+<section id="using-pre-compiled-ffmpeg">
+<h4><span class="section-number">3.2.1. </span>Using Pre-compiled FFmpeg<a class="headerlink" href="#using-pre-compiled-ffmpeg" title="Link to this heading">#</a></h4>
+<p>If you prefer not to compile FFmpeg from source, pre-compiled binaries are available for download from the <a class="reference external" href="https://www.ffmpeg.org/download.html">official FFmpeg download page</a>.</p>
+<p><strong>Available options:</strong></p>
+<ul class="simple">
+<li><p><strong>Linux</strong>: Static and shared builds, and distribution-specific packages (Ubuntu, Debian, Fedora, etc.)</p></li>
+<li><p><strong>Windows</strong>: Pre-built executables from various trusted sources</p></li>
+</ul>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>When using pre-compiled FFmpeg binaries, ensure they are built with NVENC/NVDEC support enabled. You can verify this by running <code class="docutils literal notranslate"><span class="pre">ffmpeg</span> <span class="pre">-encoders</span> <span class="pre">|</span> <span class="pre">grep</span> <span class="pre">nvenc</span></code> and <code class="docutils literal notranslate"><span class="pre">ffmpeg</span> <span class="pre">-decoders</span> <span class="pre">|</span> <span class="pre">grep</span> <span class="pre">cuvid</span></code>.</p>
+</div>
+<p>For users who need custom compilation options or want the latest features, follow the instructions in the next section to compile FFmpeg from source.</p>
+</section>
+<section id="compiling-ffmpeg">
+<h4><span class="section-number">3.2.2. </span>Compiling FFmpeg<a class="headerlink" href="#compiling-ffmpeg" title="Link to this heading">#</a></h4>
+<p>FFmpeg is an open-source project. Download the FFmpeg source code repository and compile it using an appropriate compiler.</p>
+<p>More information on building FFmpeg can be found at: <a class="reference external" href="https://trac.ffmpeg.org/wiki/CompilationGuide">FFmpeg Compilation Guide</a>.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>CUDA NPP has been deprecated in FFmpeg for CUDA versions above 12.8. It is recommended to avoid <code class="docutils literal notranslate"><span class="pre">--enable-libnpp</span></code> when compiling FFmpeg.</p>
+</div>
+<section id="compiling-for-linux">
+<span id="id1"></span><h5><span class="section-number">3.2.2.1. </span>Compiling for Linux<a class="headerlink" href="#compiling-for-linux" title="Link to this heading">#</a></h5>
+<p>FFmpeg with NVIDIA GPU acceleration is supported on Linux, including Windows Subsystem for Linux (WSL) and Jetson Thor (JetPack 7.1 and later; T4000 and T5000 modules).</p>
+<p>To compile FFmpeg on Linux, do the following:</p>
+<ul class="simple">
+<li><p>Install necessary packages using your distribution’s package manager. For Ubuntu/Debian:</p></li>
+</ul>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>sudo apt update &amp;&amp; sudo apt -y install git build-essential pkg-config nasm clang
+</pre></div>
+</div>
+<ul class="simple">
+<li><p>Clone and install the NVIDIA codec headers (ffnvcodec):</p></li>
+</ul>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>git clone https://code.ffmpeg.org/FFmpeg/nv-codec-headers.git
+cd nv-codec-headers &amp;&amp; sudo make install &amp;&amp; cd -
+</pre></div>
+</div>
+<ul class="simple">
+<li><p>Clone FFmpeg’s public Git repository:</p></li>
+</ul>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>git clone https://code.ffmpeg.org/FFmpeg/FFmpeg.git
+</pre></div>
+</div>
+<ul class="simple">
+<li><p>Configure FFmpeg with NVIDIA GPU support:</p></li>
+</ul>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>cd FFmpeg &amp;&amp; ./configure --prefix=&quot;$PWD/build&quot; --enable-nonfree --disable-static --enable-shared --nvcc=clang
+</pre></div>
+</div>
+<ul class="simple">
+<li><p>Compile FFmpeg (adjust <code class="docutils literal notranslate"><span class="pre">-j</span></code> value based on your CPU cores, or use <code class="docutils literal notranslate"><span class="pre">-j$(nproc)</span></code> for automatic detection):</p></li>
+</ul>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>make -j$(nproc)
+</pre></div>
+</div>
+<ul class="simple">
+<li><p>Install FFmpeg to the local build directory:</p></li>
+</ul>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>make install
+</pre></div>
+</div>
+<ul class="simple">
+<li><p>Set the library path to use the locally-built FFmpeg (add this to your <code class="docutils literal notranslate"><span class="pre">~/.bashrc</span></code> for persistence):</p></li>
+</ul>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>export LD_LIBRARY_PATH=$PWD/build/lib:$LD_LIBRARY_PATH
+export PATH=$PWD/build/bin:$PATH
+</pre></div>
+</div>
+<ul class="simple">
+<li><p>(Optional) Verify the build by checking for NVENC/NVDEC support:</p></li>
+</ul>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>ffmpeg -hide_banner -encoders | grep nvenc
+ffmpeg -hide_banner -decoders | grep cuvid
+ffmpeg -hide_banner -filters  | grep cuda
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>On Jetson Thor, the NVIDIA Video Codec SDK (NVENC/NVDEC) was introduced with JetPack 7.1. For more information, see the <a class="reference external" href="https://developer.nvidia.com/blog/accelerate-ai-inference-for-edge-and-robotics-with-nvidia-jetson-t4000-and-nvidia-jetpack-7-1/">NVIDIA Developer Blog announcement</a>.</p>
+</div>
+</section>
+<section id="compiling-for-windows">
+<h5><span class="section-number">3.2.2.2. </span>Compiling for Windows<a class="headerlink" href="#compiling-for-windows" title="Link to this heading">#</a></h5>
+<p>FFmpeg with NVIDIA GPU acceleration is supported on all Windows platforms, with compilation through MSYS2.</p>
+<p>To compile FFmpeg on Windows, do the following:</p>
+<ul class="simple">
+<li><p>Download and install MSYS2 from <a class="reference external" href="https://www.msys2.org/">https://www.msys2.org/</a> with default settings (installs to C:\msys64). Open “MSYS2 MSYS” from Start Menu and update:</p></li>
+</ul>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>pacman -Syu
+</pre></div>
+</div>
+<ul class="simple">
+<li><p>Launch UCRT64 environment (C:\msys64\ucrt64.exe or “MSYS2 UCRT64” in Start Menu) and install build tools:</p></li>
+</ul>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>pacman -S --needed base-devel git \
+    mingw-w64-ucrt-x86_64-toolchain \
+    mingw-w64-ucrt-x86_64-clang \
+    mingw-w64-ucrt-x86_64-pkg-config \
+    mingw-w64-ucrt-x86_64-nasm
+</pre></div>
+</div>
+<ul class="simple">
+<li><p>Clone and install the NVIDIA codec headers (ffnvcodec):</p></li>
+</ul>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>mkdir -p ~/ffmpeg-work/deps &amp;&amp; cd ~/ffmpeg-work/deps
+git clone https://code.ffmpeg.org/FFmpeg/nv-codec-headers.git
+cd nv-codec-headers &amp;&amp; make install PREFIX=/ucrt64 &amp;&amp; cd -
+</pre></div>
+</div>
+<ul class="simple">
+<li><p>Clone FFmpeg’s public Git repository:</p></li>
+</ul>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>cd ~/ffmpeg-work
+git clone https://code.ffmpeg.org/FFmpeg/FFmpeg.git ffmpeg-source
+cd ffmpeg-source
+</pre></div>
+</div>
+<ul class="simple">
+<li><p>Configure FFmpeg with NVIDIA GPU support:</p></li>
+</ul>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>./configure \
+  --prefix=&quot;$PWD/build&quot; \
+  --arch=x86_64 \
+  --target-os=mingw32 \
+  --enable-nonfree \
+  --disable-debug \
+  --disable-shared \
+  --enable-static \
+  --pkg-config-flags=&quot;--static&quot; \
+  --extra-ldflags=&quot;-static -static-libgcc -static-libstdc++&quot; \
+  --nvcc=clang
+</pre></div>
+</div>
+<ul class="simple">
+<li><p>Compile FFmpeg (adjust <code class="docutils literal notranslate"><span class="pre">-j</span></code> value based on your CPU cores, or use <code class="docutils literal notranslate"><span class="pre">-j$(nproc)</span></code> for automatic detection):</p></li>
+</ul>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>make -j$(nproc)
+</pre></div>
+</div>
+<ul class="simple">
+<li><p>Install FFmpeg to the local build directory:</p></li>
+</ul>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>make install
+</pre></div>
+</div>
+<ul class="simple">
+<li><p>(Optional) Verify the build by checking for NVENC/NVDEC support:</p></li>
+</ul>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>./build/bin/ffmpeg.exe -hide_banner -encoders | grep nvenc
+./build/bin/ffmpeg.exe -hide_banner -decoders | grep cuvid
+./build/bin/ffmpeg.exe -hide_banner -filters  | grep cuda
+</pre></div>
+</div>
+<p>The compiled FFmpeg binary can be found in <code class="docutils literal notranslate"><span class="pre">build/bin/</span></code> directory. You can copy the binaries to a location in your PATH for system-wide access.</p>
+</section>
+<section id="commonly-faced-issues-and-tips-to-resolve-them">
+<h5><span class="section-number">3.2.2.3. </span>Commonly faced issues and tips to resolve them<a class="headerlink" href="#commonly-faced-issues-and-tips-to-resolve-them" title="Link to this heading">#</a></h5>
+<p><strong>Common compilation issues:</strong></p>
+<ul class="simple">
+<li><p>FFmpeg’s master branch may be broken at times. Please check out a release version if it is broken, or use an older snapshot.</p></li>
+</ul>
+<p><strong>Common run-time issues:</strong></p>
+<ul class="simple">
+<li><p>Use <code class="docutils literal notranslate"><span class="pre">-fps_mode</span> <span class="pre">passthrough</span></code> when encoding to preserve the original frame timing from the decoded source and prevent FFmpeg from duplicating or dropping frames due to frame rate conversion.</p></li>
+</ul>
+</section>
+</section>
+</section>
+</section>
+<section id="basic-testing">
+<h2><span class="section-number">4. </span>Basic Testing<a class="headerlink" href="#basic-testing" title="Link to this heading">#</a></h2>
+<p>Once the FFmpeg binary with NVIDIA hardware acceleration support is compiled, hardware-accelerated video transcode should be tested to ensure everything works well.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The code snippets in this section keep video frames in GPU memory using either NVDEC hwaccel (<code class="docutils literal notranslate"><span class="pre">-hwaccel</span> <span class="pre">cuda</span> <span class="pre">-hwaccel_output_format</span> <span class="pre">cuda</span></code>) or CUVID decoders (<code class="docutils literal notranslate"><span class="pre">-c:v</span> <span class="pre">&lt;codec&gt;_cuvid</span></code>). See the <a class="reference internal" href="#video-decoding"><span class="std std-ref">Video Decoding</span></a> section for the distinction and supported codecs.</p>
+</div>
+<p>The NVENC plugin in FFmpeg supports the following codecs:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">h264_nvenc</span></code> - H.264 Encoder</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">hevc_nvenc</span></code> - HEVC Encoder</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">av1_nvenc</span></code> - AV1 Encoder</p></li>
+</ul>
+<p>The command lines in this document use <code class="docutils literal notranslate"><span class="pre">h264_nvenc</span></code>, which should be replaced by <code class="docutils literal notranslate"><span class="pre">hevc_nvenc</span></code> for HEVC encoding or <code class="docutils literal notranslate"><span class="pre">av1_nvenc</span></code> for AV1 encoding.</p>
+<div class="admonition tip">
+<p class="admonition-title">Tip</p>
+<p>The notation <strong>1:N</strong> in subsection titles refers to transcoding workflows where <strong>1</strong> input is transcoded into <strong>N</strong> outputs (e.g., 1:2 means one input produces two outputs at different resolutions/bitrates).</p>
+</div>
+<div class="admonition tip">
+<p class="admonition-title">Tip</p>
+<p>For systems with multiple GPUs, use the <code class="docutils literal notranslate"><span class="pre">-hwaccel_device</span></code> option to specify which GPU to use for hardware acceleration. For example, <code class="docutils literal notranslate"><span class="pre">-hwaccel</span> <span class="pre">cuda</span> <span class="pre">-hwaccel_device</span> <span class="pre">1</span></code> will use the second GPU (device numbering starts at 0). Alternatively, set the <code class="docutils literal notranslate"><span class="pre">CUDA_VISIBLE_DEVICES</span></code> environment variable to control which GPUs are visible to FFmpeg.</p>
+<p>To list available GPUs and their device IDs, use <code class="docutils literal notranslate"><span class="pre">nvidia-smi</span> <span class="pre">-L</span></code>.</p>
+</div>
+<section id="simple-transcoding">
+<h3><span class="section-number">4.1. </span>1:1 Simple Transcoding<a class="headerlink" href="#simple-transcoding" title="Link to this heading">#</a></h3>
+<p>The following command reads file <em>input.mp4</em> and transcodes it to <em>output.mp4</em> with H.264 video at the same resolution and with the same audio codec.</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>ffmpeg -y -hwaccel cuda -hwaccel_output_format cuda -i input.mp4 -c:a copy -c:v h264_nvenc -b:v 5M -fps_mode passthrough output.mp4
+</pre></div>
+</div>
+</section>
+<section id="transcode-with-scaling">
+<span id="hwaccel-transcode-with-scaling"></span><h3><span class="section-number">4.2. </span>1:1 Transcode with Scaling<a class="headerlink" href="#transcode-with-scaling" title="Link to this heading">#</a></h3>
+<p>The following command reads file <em>input.mp4</em> and transcodes it to <em>output.mp4</em> with H.264 video at 720p resolution and with the same audio codec. This command uses the built-in resizer in the CUVID decoder.</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>ffmpeg -y -c:v h264_cuvid -resize 1280x720 -i input.mp4 -c:a copy -c:v h264_nvenc -b:v 5M -fps_mode passthrough output.mp4
+</pre></div>
+</div>
+<p>There is a built-in cropper in the CUVID decoder as well. The following command illustrates the use of cropping (<code class="docutils literal notranslate"><span class="pre">-crop</span> <span class="pre">(top)x(bottom)x(left)x(right)</span></code>):</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>ffmpeg -y -c:v h264_cuvid -crop 16x16x32x32 -i input.mp4 -c:a copy -c:v h264_nvenc -b:v 5M -fps_mode passthrough output.mp4
+</pre></div>
+</div>
+<p>Alternatively, the <code class="docutils literal notranslate"><span class="pre">scale_cuda</span></code> resize filter can be used as shown below:</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>ffmpeg -y -hwaccel cuda -hwaccel_output_format cuda -i input.mp4 -vf scale_cuda=1280:720:interp_algo=bilinear -c:a copy -c:v h264_nvenc -b:v 5M -fps_mode passthrough output.mp4
+</pre></div>
+</div>
+</section>
+<section id="transcode-with-pixel-format-conversion">
+<h3><span class="section-number">4.3. </span>1:1 Transcode with Pixel Format Conversion<a class="headerlink" href="#transcode-with-pixel-format-conversion" title="Link to this heading">#</a></h3>
+<p>The following command demonstrates transcoding with pixel format conversion, a common workflow in broadcast environments where contribution feeds (4:2:2 10-bit) need to be converted to distribution formats (4:2:0 10-bit). This command reads a P210 (4:2:2 10-bit) input and transcodes it to P010 (4:2:0 10-bit) output, performing the chroma subsampling conversion on the GPU.</p>
+<p>Input: <em>input_P210.mp4 (4:2:2 10-bit)</em></p>
+<p>Output: <em>output_P010.mp4 (4:2:0 10-bit)</em></p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>ffmpeg -y -hwaccel cuda -hwaccel_output_format cuda -i input_P210.mp4 -vf scale_cuda=format=p010 -c:a copy -c:v h264_nvenc -b:v 5M -fps_mode passthrough output_P010.mp4
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This feature is particularly useful with GPUs that support 4:2:2 encoding and decoding, such as the Blackwell generation GPUs. The <code class="docutils literal notranslate"><span class="pre">scale_cuda</span></code> filter can convert between various pixel formats while keeping frames in GPU memory.</p>
+</div>
+</section>
+<section id="n-transcode-with-scaling">
+<span id="n-hwaccel-transcode-with-scaling"></span><h3><span class="section-number">4.4. </span>1:N Transcode with Scaling<a class="headerlink" href="#n-transcode-with-scaling" title="Link to this heading">#</a></h3>
+<p>The following command reads file <em>input.mp4</em> and transcodes it to two different H.264 videos at various output resolutions and bit rates. Note that while using the GPU video encoder and decoder, this command also uses the scaling filter (<code class="docutils literal notranslate"><span class="pre">scale_cuda</span></code>) in FFmpeg for scaling the decoded video output into multiple desired resolutions. Doing this ensures that the memory transfers (system memory to video memory and vice versa) are eliminated, and that transcoding is performed with the highest possible performance on the GPU hardware.</p>
+<p>Input: <em>input.mp4</em></p>
+<p>Outputs: <em>1080p, 720p (audio same as input)</em></p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>ffmpeg -y -hwaccel cuda -hwaccel_output_format cuda -i input.mp4 \
+    -vf scale_cuda=1920:1080:interp_algo=bilinear -c:a copy -c:v h264_nvenc -b:v 5M -fps_mode passthrough output1.mp4 \
+    -vf scale_cuda=1280:720:interp_algo=bilinear -c:a copy -c:v h264_nvenc -b:v 8M -fps_mode passthrough output2.mp4
+</pre></div>
+</div>
+</section>
+<section id="n-encode-from-yuv-or-raw-data">
+<span id="n-hwaccel-encode-from-yuv-or-raw-data"></span><h3><span class="section-number">4.5. </span>1:N Encode from YUV or RAW Data<a class="headerlink" href="#n-encode-from-yuv-or-raw-data" title="Link to this heading">#</a></h3>
+<p>Encoding from YUV or RAW files can result in disk I/O being a bottleneck, and it is advised to do such encodes from an SSD to get maximum performance. The following command reads file <em>input.yuv</em> and encodes it to four different H.264 videos at various output bit rates. Note that this command results in a single YUV load only for all encode operations, resulting in more efficient disk I/O to improve the overall encode performance.</p>
+<p>Input: <em>input.yuv (yuv420p, 1080p)</em></p>
+<p>Outputs: <em>1080p (8M), 1080p (10M), 1080p (12M), 1080p (14M)</em></p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>ffmpeg -y -f rawvideo -pix_fmt yuv420p -s 1920x1080 -i input.yuv \
+    -filter_complex &quot;[0:v]hwupload_cuda,split=4[o1][o2][o3][o4]&quot; \
+    -map &quot;[o1]&quot; -c:v h264_nvenc -b:v 8M -fps_mode passthrough output1.mp4 \
+    -map &quot;[o2]&quot; -c:v h264_nvenc -b:v 10M -fps_mode passthrough output2.mp4 \
+    -map &quot;[o3]&quot; -c:v h264_nvenc -b:v 12M -fps_mode passthrough output3.mp4 \
+    -map &quot;[o4]&quot; -c:v h264_nvenc -b:v 14M -fps_mode passthrough output4.mp4
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Other pixel formats are also supported by NVENC. For example, the pixel format (<code class="docutils literal notranslate"><span class="pre">pix_fmt</span></code>) should be changed to <code class="docutils literal notranslate"><span class="pre">yuv444p</span></code>, <code class="docutils literal notranslate"><span class="pre">p010</span></code>, or <code class="docutils literal notranslate"><span class="pre">p210</span></code> for encoding YUV 4:4:4 8-bit, 4:2:0 10-bit, and 4:2:2 10-bit files respectively.</p>
+</div>
+</section>
+<section id="multiple-1-n-transcode-with-scaling">
+<span id="multiple-n-hwaccel-transcode-with-scaling"></span><h3><span class="section-number">4.6. </span>Multiple 1:N Transcode with Scaling<a class="headerlink" href="#multiple-1-n-transcode-with-scaling" title="Link to this heading">#</a></h3>
+<p>This method should be used to realize the full potential of GPU hardware-accelerated transcoding. One of the typical workloads for transcoding consists of videos being transcoded and archived at different resolutions and bitrates so that they can be served to different clients later. The following command reads file <em>input1.mp4</em> as the input, decodes it in GPU hardware, scales the input in hardware, and re-encodes as H.264 videos to <em>output11.mp4</em> at 480p and <em>output12.mp4</em> at 240p using the GPU hardware encoder. Simultaneously it reads file <em>input2.mp4</em> and transcodes it to <em>output21.mp4</em> at 720p and <em>output22.mp4</em> at 480p as H.264 videos. These are achieved using a single command line.</p>
+<p>Input: <em>input1.mp4, input2.mp4</em></p>
+<p>Output: <em>480p, 240p (from input1.mp4), 720p, 480p (from input2.mp4) (video only)</em></p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>ffmpeg -y -hwaccel cuda -hwaccel_output_format cuda -i input1.mp4 \
+    -hwaccel cuda -hwaccel_output_format cuda -i input2.mp4 \
+    -map 0:0 -vf scale_cuda=640:480:interp_algo=bilinear -c:v h264_nvenc -b:v 1M output11.mp4 \
+    -map 0:0 -vf scale_cuda=320:240:interp_algo=bilinear -c:v h264_nvenc -b:v 500k output12.mp4 \
+    -map 1:0 -vf scale_cuda=1280:720:interp_algo=bilinear -c:v h264_nvenc -b:v 3M output21.mp4 \
+    -map 1:0 -vf scale_cuda=640:480:interp_algo=bilinear -c:v h264_nvenc -b:v 2M output22.mp4
+</pre></div>
+</div>
+</section>
+<section id="multiple-1-n-transcode-with-scaling-sw-decode-hw-scaling-hw-encode">
+<h3><span class="section-number">4.7. </span>Multiple 1:N Transcode with Scaling (SW Decode-&gt;HW Scaling-&gt;HW Encode)<a class="headerlink" href="#multiple-1-n-transcode-with-scaling-sw-decode-hw-scaling-hw-encode" title="Link to this heading">#</a></h3>
+<p>In some situations, it is necessary to perform video decoding in software. For example, when the input codec is not supported by the hardware decoder, or when the hardware encoder has significantly more capacity than the decoder, software decoding can be used while still leveraging GPU acceleration for scaling and encoding.</p>
+<p>The following command reads file <em>input1.mp4</em>, decodes it in software, uploads frames to GPU memory, scales them using hardware acceleration, and encodes to <em>output11.mp4</em> at 480p and <em>output12.mp4</em> at 240p as H.264 videos. Simultaneously it reads file <em>input2.mp4</em> and transcodes it to <em>output21.mp4</em> at 720p and <em>output22.mp4</em> at 480p as H.264 videos using the same software decode -&gt; hardware scale -&gt; hardware encode workflow.</p>
+<p>Input: <em>input1.mp4, input2.mp4</em></p>
+<p>Output: <em>480p, 240p (from input1.mp4), 720p, 480p (from input2.mp4) (video only)</em></p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>ffmpeg -y -init_hw_device cuda=foo:0 -filter_hw_device foo \
+    -i input1.mp4 -i input2.mp4 \
+    -map 0:0 -vf hwupload,scale_cuda=640:480:interp_algo=bilinear -c:v h264_nvenc -b:v 1M \
+        output11.mp4 \
+    -map 0:0 -vf hwupload,scale_cuda=320:240:interp_algo=bilinear -c:v h264_nvenc -b:v 500k \
+        output12.mp4 \
+    -map 1:0 -vf hwupload,scale_cuda=1280:720:interp_algo=bilinear -c:v h264_nvenc -b:v 2M \
+        output21.mp4 \
+    -map 1:0 -vf hwupload,scale_cuda=640:480:interp_algo=bilinear -c:v h264_nvenc -b:v 1M \
+        output22.mp4
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Since this command uses software decoding (no <code class="docutils literal notranslate"><span class="pre">-hwaccel</span> <span class="pre">cuda</span></code> before inputs), the CUDA device context must be explicitly created:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">-init_hw_device</span> <span class="pre">cuda=foo:0</span></code> creates a CUDA device context named “foo” on GPU device 0 (use 1, 2, etc. for other GPUs)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">-filter_hw_device</span> <span class="pre">foo</span></code> tells all filters to use the CUDA device context named “foo”</p></li>
+</ul>
+<p>These options enable the <code class="docutils literal notranslate"><span class="pre">scale_cuda</span></code> filter and <code class="docutils literal notranslate"><span class="pre">h264_nvenc</span></code> encoder to use GPU device 0 for hardware acceleration.</p>
+</div>
+</section>
+</section>
+<section id="video-decoding">
+<span id="id2"></span><h2><span class="section-number">5. </span>Video Decoding<a class="headerlink" href="#video-decoding" title="Link to this heading">#</a></h2>
+<p>CUVID is both a <strong>parser</strong> and a <strong>decoder</strong>: it parses the compressed bitstream and decodes it on the NVDEC hardware. Because CUVID handles parsing itself, FFmpeg can use NVDEC in two ways: (1) through the CUVID decoders (<code class="docutils literal notranslate"><span class="pre">h264_cuvid</span></code>, <code class="docutils literal notranslate"><span class="pre">hevc_cuvid</span></code>, etc.), which use CUVID for both parsing and decoding, or (2) through NVDEC hardware acceleration (<code class="docutils literal notranslate"><span class="pre">-hwaccel</span> <span class="pre">nvdec</span></code> / <code class="docutils literal notranslate"><span class="pre">-hwaccel</span> <span class="pre">cuda</span></code>), which uses FFmpeg’s standard parsers and only offloads decoding to NVDEC. Both approaches use the same NVDEC hardware; they differ in who does the parsing (CUVID vs. FFmpeg).</p>
+<p><strong>Decoding Approaches</strong></p>
+<p>FFmpeg provides two methods for hardware-accelerated video decoding:</p>
+<ol class="arabic simple">
+<li><p><strong>CUVID Decoders</strong> (<code class="docutils literal notranslate"><span class="pre">h264_cuvid</span></code>, <code class="docutils literal notranslate"><span class="pre">hevc_cuvid</span></code>, <code class="docutils literal notranslate"><span class="pre">av1_cuvid</span></code>, etc.)</p>
+<ul class="simple">
+<li><p>Standalone decoders that include both an NVIDIA bitstream parser and the NVDEC decoder</p></li>
+<li><p>Provide decoder-specific options like <code class="docutils literal notranslate"><span class="pre">-resize</span></code> and <code class="docutils literal notranslate"><span class="pre">-crop</span></code> for GPU-accelerated scaling/cropping during decode</p></li>
+<li><p>Require explicit codec specification (e.g., <code class="docutils literal notranslate"><span class="pre">h264_cuvid</span></code> for H.264)</p></li>
+<li><p><strong>Supported codecs</strong>: H.264, HEVC, AV1, VP8, VP9, MPEG-1, MPEG-2, MPEG-4, VC1, MJPEG</p></li>
+</ul>
+</li>
+<li><p><strong>NVDEC Hardware Acceleration</strong> (<code class="docutils literal notranslate"><span class="pre">-hwaccel</span> <span class="pre">nvdec</span></code> or <code class="docutils literal notranslate"><span class="pre">-hwaccel</span> <span class="pre">cuda</span></code>) - <strong>Recommended</strong></p>
+<ul class="simple">
+<li><p>Hardware acceleration layer that works with FFmpeg’s standard parsers</p></li>
+<li><p>Automatic codec detection</p></li>
+<li><p>More flexible for complex filter graphs</p></li>
+<li><p>Integrates better with FFmpeg’s hwaccel framework</p></li>
+<li><p>Preferred approach for most use cases</p></li>
+<li><p><strong>Supported codecs</strong>: Same as CUVID (both use the same NVDEC hardware)</p></li>
+</ul>
+</li>
+</ol>
+<p><strong>Basic Decoding - CUVID Decoder</strong></p>
+<p>To decode an input H.264 bitstream from <em>input.mp4</em> to raw YUV using CUVID decoder:</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>ffmpeg -y -c:v h264_cuvid -i input.mp4 output.yuv
+</pre></div>
+</div>
+<p><strong>Basic Decoding - NVDEC Hardware Acceleration</strong></p>
+<p>To decode with automatic codec detection using NVDEC hwaccel:</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>ffmpeg -y -hwaccel cuda -i input.mp4 output.yuv
+</pre></div>
+</div>
+<p>Both methods generate output files in NV12 format (<em>output.yuv</em>) for yuv420p input. Frames are automatically transferred to system memory for file output.</p>
+<p><strong>Decoding with GPU-Accelerated Resize (CUVID only)</strong></p>
+<p>CUVID decoders provide built-in GPU-accelerated resize and crop during decode:</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>ffmpeg -y -c:v h264_cuvid -resize 1280x720 -i input.mp4 output.yuv
+</pre></div>
+</div>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>ffmpeg -y -c:v h264_cuvid -crop 16x16x32x32 -i input.mp4 output.yuv
+</pre></div>
+</div>
+<p><strong>Concurrent Decoding</strong></p>
+<p>To decode multiple input bitstreams concurrently within a single FFmpeg process (useful for maximizing decoder throughput):</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>ffmpeg -y \
+    -hwaccel cuda -i input1.mp4 \
+    -hwaccel cuda -i input2.mp4 \
+    -hwaccel cuda -i input3.mp4 \
+    -map 0:v -f rawvideo output1.yuv \
+    -map 1:v -f rawvideo output2.yuv \
+    -map 2:v -f rawvideo output3.yuv
+</pre></div>
+</div>
+<p>This uses a separate thread per decode operation with a single CUDA context shared among all threads.</p>
+</section>
+<section id="video-encoding">
+<h2><span class="section-number">6. </span>Video Encoding<a class="headerlink" href="#video-encoding" title="Link to this heading">#</a></h2>
+<p>NVENC provides extensive control over encoding parameters to optimize for different use cases. Understanding these parameters and their trade-offs is essential for achieving the desired balance between quality, latency, performance, and memory usage.</p>
+<p>This section explains the key NVENC parameters and provides recommended command-line configurations for common use cases based on <a class="reference external" href="https://developer.nvidia.com/video-codec-sdk">NVIDIA Video Codec SDK documentation</a>.</p>
+<section id="understanding-key-nvenc-parameters">
+<h3><span class="section-number">6.1. </span>Understanding Key NVENC Parameters<a class="headerlink" href="#understanding-key-nvenc-parameters" title="Link to this heading">#</a></h3>
+<p>The following parameters significantly impact encoding quality, performance, and latency:</p>
+<section id="presets">
+<h4><span class="section-number">6.1.1. </span>Presets<a class="headerlink" href="#presets" title="Link to this heading">#</a></h4>
+<p>NVENC presets control the speed/quality trade-off of the encoding process. Higher-numbered presets produce better quality output but require more processing time.</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">-preset</span> <span class="pre">p1</span></code>: Fastest encoding, lowest quality (legacy HP/High Performance preset)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">-preset</span> <span class="pre">p2</span></code>: Faster encoding, lower quality</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">-preset</span> <span class="pre">p3</span></code>: Fast encoding, low quality</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">-preset</span> <span class="pre">p4</span></code>: Medium encoding speed and quality (default, legacy Default preset)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">-preset</span> <span class="pre">p5</span></code>: Slow encoding, good quality (legacy BD preset)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">-preset</span> <span class="pre">p6</span></code>: Slower encoding, better quality (legacy HQ preset)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">-preset</span> <span class="pre">p7</span></code>: Slowest encoding, best quality</p></li>
+</ul>
+<p>FFmpeg also provides convenient aliases: <code class="docutils literal notranslate"><span class="pre">-preset</span> <span class="pre">fast</span></code> (maps to p1), <code class="docutils literal notranslate"><span class="pre">-preset</span> <span class="pre">medium</span></code> (maps to p4, single pass), and <code class="docutils literal notranslate"><span class="pre">-preset</span> <span class="pre">slow</span></code> (maps to p7, two-pass).</p>
+</section>
+<section id="tuning-info">
+<h4><span class="section-number">6.1.2. </span>Tuning Info<a class="headerlink" href="#tuning-info" title="Link to this heading">#</a></h4>
+<p>The <code class="docutils literal notranslate"><span class="pre">-tune</span></code> option optimizes encoder behavior for specific use cases:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">-tune</span> <span class="pre">uhq</span></code>: Ultra high quality mode (enables lookahead and temporal filter for maximum quality, higher memory usage). Only supported for HEVC and AV1 on Turing+ architectures</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">-tune</span> <span class="pre">hq</span></code>: High quality mode for latency-tolerant scenarios (VOD, archiving)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">-tune</span> <span class="pre">ll</span></code>: Low latency mode for interactive applications (reduces buffering)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">-tune</span> <span class="pre">ull</span></code>: Ultra-low latency mode for real-time streaming (minimal buffering)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">-tune</span> <span class="pre">lossless</span></code>: Lossless encoding mode</p></li>
+</ul>
+</section>
+<section id="rate-control-modes">
+<h4><span class="section-number">6.1.3. </span>Rate Control Modes<a class="headerlink" href="#rate-control-modes" title="Link to this heading">#</a></h4>
+<p>Rate control determines how the encoder allocates bits across frames:</p>
+<ul class="simple">
+<li><p><strong>CONSTQP (Constant QP)</strong>: <code class="docutils literal notranslate"><span class="pre">-rc</span> <span class="pre">constqp</span></code> - Constant quantization parameter mode, used with <code class="docutils literal notranslate"><span class="pre">-qp</span></code> to specify QP values for I/P/B frames</p></li>
+<li><p><strong>VBR (Variable Bitrate)</strong>: <code class="docutils literal notranslate"><span class="pre">-rc</span> <span class="pre">vbr</span></code> - Variable bitrate mode; control via <code class="docutils literal notranslate"><span class="pre">-b:v</span></code> (target bitrate), <code class="docutils literal notranslate"><span class="pre">-maxrate</span></code> (maximum bitrate), and <code class="docutils literal notranslate"><span class="pre">-bufsize</span></code> (VBV buffer size). Bitrate varies with content complexity.</p></li>
+<li><p><strong>VBR-CQ (Variable Bitrate, Constant Quality)</strong>: <code class="docutils literal notranslate"><span class="pre">-rc</span> <span class="pre">vbr</span></code> with <code class="docutils literal notranslate"><span class="pre">-cq</span> <span class="pre">N</span></code> - Targets a constant quality level instead of a target bitrate; control via <code class="docutils literal notranslate"><span class="pre">-cq</span> <span class="pre">N</span></code> (0-51 for H.264/HEVC, 0-63 for AV1; lower is better quality; 0 means automatic) and <code class="docutils literal notranslate"><span class="pre">-maxrate</span></code> (peak bitrate cap).</p></li>
+<li><p><strong>CBR (Constant Bitrate)</strong>: <code class="docutils literal notranslate"><span class="pre">-rc</span> <span class="pre">cbr</span></code> - Maintains constant bitrate, required for streaming applications with strict bandwidth constraints</p></li>
+</ul>
+</section>
+<section id="b-frames-and-reference-frames">
+<h4><span class="section-number">6.1.4. </span>B-frames and Reference Frames<a class="headerlink" href="#b-frames-and-reference-frames" title="Link to this heading">#</a></h4>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">-bf</span> <span class="pre">N</span></code>: Number of bidirectional B-frames between I/P frames (0-5). Bidirectional B-frames reference both past and future frames, improving compression efficiency but increasing latency due to frame reordering</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">-b_ref_mode</span> <span class="pre">[disabled|each|middle]</span></code>: Controls whether B-frames can be used as references for other frames, improving quality at the cost of memory</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">disabled</span></code>: B-frames are not used for reference</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">each</span></code>: Each B-frame will be used for reference</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">middle</span></code>: For H.264/HEVC, only the middle B-frame is used for reference: the (N/2)th B-frame where N = number of B-frames (for odd N, the (N-1)/2-th B-frame). For AV1, every other B-frame is set as an Altref2 reference except the last B-frame in the Altref interval.</p></li>
+</ul>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">-unidir_b</span> <span class="pre">1</span></code>: Enable unidirectional B-frames where both references are from the past. <strong>When enabled, NVENC replaces ALL P-frames with unidirectional B-frames</strong> that have no reordering delay. For low-latency use cases, combine with <code class="docutils literal notranslate"><span class="pre">-bf</span> <span class="pre">0</span></code> to disable bidirectional B-frames entirely (pattern: IBBBBB with only unidirectional B-frames). Provides 5-10% better compression than P-only encoding with no additional latency. Particularly useful for live streaming and real-time applications. Requires FFmpeg 7.1+</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">-nonref_p</span> <span class="pre">1</span></code>: Enable automatic insertion of non-reference P-frames. These P-frames are not used as references for encoding future frames. <strong>Benefits</strong>: Provides error resilience for unreliable networks - if a non-reference P-frame is lost during transmission, it won’t propagate errors to subsequent frames.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">-weighted_pred</span> <span class="pre">1</span></code>: Enable weighted prediction. Improves compression efficiency (1-3% bitrate savings) for content with fades, dissolves, and lighting changes by analyzing temporal brightness variations between frames. <strong>Not compatible with B-frames</strong> - requires <code class="docutils literal notranslate"><span class="pre">-bf</span> <span class="pre">0</span></code>. Only beneficial for P-frame-only encoding scenarios</p></li>
+</ul>
+</section>
+<section id="gop-group-of-pictures-structure">
+<h4><span class="section-number">6.1.5. </span>GOP (Group of Pictures) Structure<a class="headerlink" href="#gop-group-of-pictures-structure" title="Link to this heading">#</a></h4>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">-g</span> <span class="pre">N</span></code>: GOP size - distance between I-frames. Typical values: 250 (10 seconds at 25fps), 999999 (very large GOP for low-latency to avoid periodic I-frame spikes). Note: <code class="docutils literal notranslate"><span class="pre">-g</span> <span class="pre">-1</span></code> uses the preset’s default GOP size (typically 250), not infinite</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">-intra-refresh</span> <span class="pre">1</span></code>: Enable intra refresh mode (Gradual Decoder Refresh/GDR) as an alternative to periodic I-frames. Instead of encoding full I-frames at regular intervals (which causes bitrate spikes), intra refresh gradually refreshes the video by encoding different regions as intra macroblocks over multiple frames. This provides consistent bitrate, lower latency, and better error resilience for live streaming. Requires <code class="docutils literal notranslate"><span class="pre">-g</span> <span class="pre">N</span></code> to specify the refresh period.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">-single-slice-intra-refresh</span> <span class="pre">1</span></code>: Maintain single slice during intra refresh (reduces overhead, requires intra refresh to be enabled)</p></li>
+</ul>
+<p>The combination of <code class="docutils literal notranslate"><span class="pre">-g</span></code> (GOP size) and <code class="docutils literal notranslate"><span class="pre">-bf</span></code> (B-frames) determines the frame pattern:</p>
+<ul class="simple">
+<li><p><strong>IPPPP…</strong> (P-frames only, large GOP): <code class="docutils literal notranslate"><span class="pre">-g</span> <span class="pre">999999</span> <span class="pre">-bf</span> <span class="pre">0</span></code> - For scenarios with very infrequent I-frames</p></li>
+<li><p><strong>IPPPP…</strong> (P-frames with intra refresh): <code class="docutils literal notranslate"><span class="pre">-intra-refresh</span> <span class="pre">1</span> <span class="pre">-g</span> <span class="pre">250</span> <span class="pre">-bf</span> <span class="pre">0</span></code> - Infinite GOP with gradual refresh instead of periodic I-frames, ideal for low-latency streaming with consistent bitrate</p></li>
+<li><p><strong>IBBBBB…</strong> (Unidirectional B-frames with intra refresh): <code class="docutils literal notranslate"><span class="pre">-intra-refresh</span> <span class="pre">1</span> <span class="pre">-g</span> <span class="pre">250</span> <span class="pre">-bf</span> <span class="pre">0</span> <span class="pre">-unidir_b</span> <span class="pre">1</span></code> - <strong>Recommended for low-latency</strong>: P-frames are replaced with unidirectional B-frames that reference only past frames, providing better compression than P-only with no additional latency</p></li>
+<li><p><strong>IBBBBPBBBBP…</strong> (B-frames between P-frames): <code class="docutils literal notranslate"><span class="pre">-g</span> <span class="pre">250</span> <span class="pre">-bf</span> <span class="pre">4</span></code> - Maximum compression efficiency at the cost of latency</p></li>
+<li><p><strong>IIIII…</strong> (All I-frames): <code class="docutils literal notranslate"><span class="pre">-g</span> <span class="pre">0</span></code> - Highest quality and editing flexibility, but largest file size</p></li>
+</ul>
+</section>
+<section id="bitrate-control">
+<h4><span class="section-number">6.1.6. </span>Bitrate Control<a class="headerlink" href="#bitrate-control" title="Link to this heading">#</a></h4>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">-b:v</span> <span class="pre">N</span></code>: Target video bitrate (e.g., <code class="docutils literal notranslate"><span class="pre">5M</span></code> for 5 Mbps). This is the average bitrate the encoder aims to achieve</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">-maxrate</span> <span class="pre">N</span></code>: Maximum bitrate allowed (peak bitrate cap):</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">-maxrate</span> <span class="pre">=</span> <span class="pre">-b:v</span></code>: Enforces constant bitrate (CBR) behavior. Use for live streaming, video conferencing, and bandwidth-constrained scenarios where predictable bitrate is critical</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">-maxrate</span> <span class="pre">&gt;</span> <span class="pre">-b:v</span></code>: Allows variable bitrate (VBR). Bitrate can spike up to maxrate for complex scenes while averaging at <code class="docutils literal notranslate"><span class="pre">-b:v</span></code>. Better quality for VOD/transcoding</p></li>
+</ul>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">-bufsize</span> <span class="pre">N</span></code>: Video Buffering Verifier (VBV) buffer size in bits (not bits/sec). Controls how much bitrate can vary over time. Buffer duration = <code class="docutils literal notranslate"><span class="pre">bufsize</span> <span class="pre">/</span> <span class="pre">maxrate</span></code>:</p>
+<ul>
+<li><p>Very large buffers (e.g., <code class="docutils literal notranslate"><span class="pre">-bufsize</span> <span class="pre">20M</span> <span class="pre">-maxrate</span> <span class="pre">5M</span></code> = 4 second buffer): <strong>Recommended by NVIDIA for recording/archiving and high-quality transcoding</strong>. Allows maximum quality optimization for complex scenes</p></li>
+<li><p>Large buffers (e.g., <code class="docutils literal notranslate"><span class="pre">-bufsize</span> <span class="pre">10M</span> <span class="pre">-maxrate</span> <span class="pre">5M</span></code> = 2 second buffer): Good for quality-focused VOD/OTT streaming</p></li>
+<li><p>Medium buffers (e.g., <code class="docutils literal notranslate"><span class="pre">-bufsize</span> <span class="pre">5M</span> <span class="pre">-maxrate</span> <span class="pre">5M</span></code> = 1 second buffer): Standard live streaming scenarios</p></li>
+<li><p>Small buffers (e.g., <code class="docutils literal notranslate"><span class="pre">-bufsize</span> <span class="pre">167K</span> <span class="pre">-maxrate</span> <span class="pre">5M</span></code> = 1 frame at 30fps): <strong>Recommended by NVIDIA for ultra-low latency</strong> (game streaming, video conferencing). Strict frame-by-frame bitrate control</p></li>
+</ul>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">-qmin</span> <span class="pre">N</span></code> and <code class="docutils literal notranslate"><span class="pre">-qmax</span> <span class="pre">N</span></code>: Minimum and maximum quantization parameters that constrain the encoder’s QP range. Valid range: 0-51 for H.264/HEVC, 0-255 for AV1 (useful for quality control in VBR/CBR modes)</p></li>
+</ul>
+</section>
+<section id="lookahead">
+<h4><span class="section-number">6.1.7. </span>Lookahead<a class="headerlink" href="#lookahead" title="Link to this heading">#</a></h4>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">-rc-lookahead</span> <span class="pre">N</span></code>: Number of frames to buffer for rate control analysis. <strong>Maximum depth is (31 - number of B-frames). If a higher value is specified, it will be clamped by the driver to this maximum</strong></p>
+<ul>
+<li><p>Improves rate-control accuracy by analyzing future frames before encoding, particularly for adaptive I-frame insertion at scene cuts and adaptive B-frame decision</p></li>
+<li><p>Lookahead allocates additional buffers in video memory for frames buffered in the lookahead queue, increasing memory usage proportional to lookahead depth</p></li>
+<li><p>Automatically enabled by some presets (P6, P7) for better quality</p></li>
+<li><p>For memory-constrained scenarios, disable lookahead (<code class="docutils literal notranslate"><span class="pre">-rc-lookahead</span> <span class="pre">0</span></code>) to reduce video memory footprint</p></li>
+<li><p>Increases encoding latency as input frames must remain available to the encoder until encode completion</p></li>
+</ul>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">-lookahead_level</span> <span class="pre">[auto|0|1|2|3]</span></code>: Specifies the lookahead level. Higher level may improve quality at the expense of performance (default: auto)</p></li>
+</ul>
+</section>
+<section id="adaptive-quantization-aq">
+<h4><span class="section-number">6.1.8. </span>Adaptive Quantization (AQ)<a class="headerlink" href="#adaptive-quantization-aq" title="Link to this heading">#</a></h4>
+<p>Adaptive Quantization adjusts encoding quantization parameters based on frame characteristics to improve perceptual quality.</p>
+<p><strong>Spatial AQ</strong></p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">-spatial-aq</span> <span class="pre">1</span></code>: Enables spatial adaptive quantization</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">-aq-strength</span> <span class="pre">N</span></code>: Controls QP variation intensity (1 (least aggressive) to 15 (most aggressive), default: 8)</p></li>
+<li><p>Allocates more bits to flat/smooth regions (more perceptually important) at the cost of detailed regions</p></li>
+<li><p><strong>Improves perceptual quality but may reduce PSNR metrics (disable this option for PSNR evaluation)</strong></p></li>
+<li><p>Recommended for second-generation Maxwell GPUs and newer</p></li>
+</ul>
+<p><strong>Temporal AQ</strong></p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">-temporal-aq</span> <span class="pre">1</span></code>: Enables temporal adaptive quantization</p></li>
+<li><p>Allocates more bits to static high-detail regions to improve reference frame quality</p></li>
+<li><p>Most beneficial for content with static detailed backgrounds and low-motion foregrounds</p></li>
+<li><p><strong>May cause frame size fluctuation within GOP (not recommended for strict per-frame CBR requirements)</strong></p></li>
+<li><p>Recommended for second-generation Maxwell GPUs and newer</p></li>
+</ul>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p><strong>Do not enable spatial and temporal adaptive quantization together.</strong> Use either spatial AQ or temporal AQ, not both. Using both can lead to conflicting bit allocation and is not recommended.</p>
+</div>
+</section>
+<section id="temporal-filtering">
+<h4><span class="section-number">6.1.9. </span>Temporal Filtering<a class="headerlink" href="#temporal-filtering" title="Link to this heading">#</a></h4>
+<p>Temporal filtering is a noise reduction technique that analyzes multiple frames to reduce temporal noise while preserving detail.</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">-tf_level</span> <span class="pre">[0|4]</span></code>: Specifies the strength of temporal filtering. Supported values:</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">0</span></code>: Temporal filtering disabled</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">4</span></code>: Temporal filtering enabled with strength level 4</p></li>
+</ul>
+</li>
+<li><p><strong>Requirements</strong>:</p>
+<ul>
+<li><p>Requires at least 4 B-frames (<code class="docutils literal notranslate"><span class="pre">-bf</span> <span class="pre">4</span></code>) - temporal filter needs <code class="docutils literal notranslate"><span class="pre">frameIntervalP</span> <span class="pre">&gt;=</span> <span class="pre">5</span></code></p></li>
+<li><p>Not compatible with zero reorder delay (ultra-low latency mode)</p></li>
+<li><p>Not compatible with stereo Multiview Video Coding encoding</p></li>
+<li><p>Not compatible with alpha layer encoding (HEVC/AV1)</p></li>
+</ul>
+</li>
+<li><p><strong>Recommended for</strong>: Natural content (real-world video, not synthetic/animated content)</p></li>
+<li><p><strong>Benefits</strong>: Reduces temporal noise and improves visual quality, particularly for content captured with noisy sensors or in low-light conditions</p></li>
+<li><p><strong>Availability</strong>: Supported for H.264, HEVC, and AV1 on compatible hardware</p></li>
+<li><p><strong>Note</strong>: Automatically enabled by UHQ tuning (<code class="docutils literal notranslate"><span class="pre">-tune</span> <span class="pre">uhq</span></code>)</p></li>
+</ul>
+</section>
+<section id="multi-pass-encoding">
+<h4><span class="section-number">6.1.10. </span>Multi-Pass Encoding<a class="headerlink" href="#multi-pass-encoding" title="Link to this heading">#</a></h4>
+<p>For NVENC-based encoders (<code class="docutils literal notranslate"><span class="pre">*_nvenc</span></code>), the <code class="docutils literal notranslate"><span class="pre">-multipass</span></code> option controls per-frame multi-pass rate control inside NVENC, not classic file-level 2-pass encoding. NVENC still runs as a single encode job; it just does one or two internal passes for each frame to improve bit allocation.</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">-multipass</span> <span class="pre">[disabled|qres|fullres]</span></code>:</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">disabled</span></code> (NV_ENC_MULTI_PASS_DISABLED): Single-pass encoding. Each frame is analyzed and encoded once; lowest latency and memory use, but rate control has less information about frame complexity.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">qres</span></code> (Quarter Resolution, NV_ENC_TWO_PASS_QUARTER_RESOLUTION): Two-pass encoding per frame — first pass at quarter resolution, second at full resolution. The quarter-res pass is cheaper and can help detect large motion vectors while keeping GPU cost lower, but the statistics are somewhat coarser.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">fullres</span></code> (Full Resolution, NV_ENC_TWO_PASS_FULL_RESOLUTION): Two-pass encoding per frame with both passes at full resolution. Most accurate frame-complexity and motion statistics, allowing NVENC to place bits more precisely, at the cost of additional encoding time and higher video-memory usage.</p></li>
+</ul>
+</li>
+</ul>
+<p>In general, multi-pass modes improve rate control accuracy (especially for CBR / tight VBV) and can bring the actual bitrate closer to the target, but they do so at the expense of encoding time and memory. Use them when quality and bitrate accuracy matter more than minimum latency or peak throughput.</p>
+</section>
+<section id="split-frame-encoding">
+<h4><span class="section-number">6.1.11. </span>Split Frame Encoding<a class="headerlink" href="#split-frame-encoding" title="Link to this heading">#</a></h4>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">-split_encode_mode</span> <span class="pre">[disabled|auto|forced|2|3|4]</span></code>: Controls split frame encoding for parallel processing on GPUs with multiple NVENC engines. Available for HEVC and AV1 (not H.264)</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">disabled</span></code>: Split frame encoding disabled for all configurations</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">auto</span></code>: Enabled or disabled automatically depending on preset and tuning (default)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">forced</span></code>: Enabled with the driver selecting the optimal number of horizontal strips automatically</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">2</span></code>: Force 2-way horizontal split when multiple NVENC engines are available</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">3</span></code>: Force 3-way horizontal split when multiple NVENC engines are available (requires 3 NVENC engines)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">4</span></code>: Force 4-way horizontal split when multiple NVENC engines are available (requires 4 NVENC engines)</p></li>
+</ul>
+</li>
+<li><p><strong>How it works</strong>: Divides each frame into horizontal strips that are encoded in parallel across multiple NVENC engines, improving throughput with minimal quality loss</p></li>
+<li><p><strong>Best for</strong>: High-resolution encoding (4K, 8K) where encoding speed is critical</p></li>
+<li><p><strong>Requirements</strong>: GPU must have multiple NVENC engines. The <a class="reference external" href="https://developer.nvidia.com/video-encode-decode-support-matrix">Video Encode and Decode Support Matrix</a> lists the number of NVENC (and NVDEC) engines per GPU</p></li>
+<li><p><strong>Recommendation</strong>: Use <code class="docutils literal notranslate"><span class="pre">forced</span></code> to let the driver decide optimal split configuration, or use <code class="docutils literal notranslate"><span class="pre">2</span></code> if you know your GPU has 2 NVENC engines</p></li>
+</ul>
+<p>For more on split-frame encoding and high-resolution workflows (e.g. 8K60), see the <a class="reference external" href="https://developer.nvidia.com/blog/video-encoding-at-8k60-with-split-frame-encoding-and-nvidia-ada-lovelace-architecture/">NVIDIA Developer Blog: Video encoding at 8K60 with split-frame encoding and NVIDIA Ada Lovelace architecture</a>.</p>
+</section>
+</section>
+<section id="use-case-recommendations">
+<h3><span class="section-number">6.2. </span>Use Case Recommendations<a class="headerlink" href="#use-case-recommendations" title="Link to this heading">#</a></h3>
+<p>Based on NVIDIA Video Codec SDK recommendations, the following configurations are optimized for specific use cases. Treat these as <strong>general guidelines or a starting point</strong>—you can modify any of the settings to suit your content, quality targets, and constraints; they are not meant as ground truth for every scenario.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p><strong>About the Examples:</strong> All examples demonstrate <strong>file-to-file transcoding</strong> (<code class="docutils literal notranslate"><span class="pre">input.mp4</span></code> -&gt; <code class="docutils literal notranslate"><span class="pre">output.mp4</span></code>) to illustrate the encoder settings. For real-time capture (game recording, screen capture) or live streaming (game casting, broadcasting), you will need to use appropriate input sources and output destinations, but the recommended NVENC encoding parameters remain the same.</p>
+</div>
+<section id="recording-and-archiving">
+<h4><span class="section-number">6.2.1. </span>Recording and Archiving<a class="headerlink" href="#recording-and-archiving" title="Link to this heading">#</a></h4>
+<p>For recording and archiving scenarios where maximum quality is critical and encoding can be done offline or with relaxed real-time constraints.</p>
+<p><strong>Recommended Settings (Bitrate-Based VBR):</strong></p>
+<p>NVIDIA’s official recommendation for recording/archiving uses bitrate-based VBR with:</p>
+<ul class="simple">
+<li><p>Slower preset (p6 or p7) with high-quality or ultra-high-quality tuning</p></li>
+<li><p>Variable bitrate (VBR) rate control with high target bitrate</p></li>
+<li><p><strong>Very large VBV buffer size (4 seconds)</strong> - Allows maximum quality optimization for complex scenes</p></li>
+<li><p>Lookahead enabled</p></li>
+<li><p>B-frames enabled with B-frames as reference</p></li>
+<li><p><strong>Adaptive quantization for non-objective quality evaluation</strong> (spatial <strong>or</strong> temporal AQ only—do not enable both)</p></li>
+<li><p>Multi-pass encoding (quarter or full resolution)</p></li>
+<li><p>Optional: Temporal filtering for natural content</p></li>
+</ul>
+<p><strong>Example - Ultra-High-Quality Recording (4K60):</strong></p>
+<pre class="literal-block">ffmpeg -y -hwaccel cuda -hwaccel_output_format cuda -i input.mp4 \
+    -c:a copy -c:v hevc_nvenc \
+    -preset p7 -tune uhq -multipass fullres \
+    -rc vbr -b:v 40M -maxrate 60M -bufsize 240M \
+    -bf 4 -b_ref_mode each \
+    <strong>-spatial-aq 1 -aq-strength 10</strong> \
+    -fps_mode passthrough output.mp4</pre>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p><strong>4-second VBV buffer</strong> (<code class="docutils literal notranslate"><span class="pre">-bufsize</span> <span class="pre">240M</span></code> = 60M × 4 seconds) gives the encoder maximum flexibility to optimize quality for complex scenes while maintaining the target average bitrate (<code class="docutils literal notranslate"><span class="pre">-b:v</span> <span class="pre">40M</span></code>). This matches NVIDIA’s official recommendation for recording/archiving workflows.</p>
+<p>With <code class="docutils literal notranslate"><span class="pre">-tune</span> <span class="pre">uhq</span></code>, lookahead and temporal filtering are automatically enabled; you do not need to set <code class="docutils literal notranslate"><span class="pre">-rc-lookahead</span></code> or <code class="docutils literal notranslate"><span class="pre">-tf_level</span></code> explicitly.</p>
+</div>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p><code class="docutils literal notranslate"><span class="pre">-spatial-aq</span> <span class="pre">1</span> <span class="pre">-aq-strength</span> <span class="pre">10</span></code> should only be used when quality tests (e.g. PSNR or other objective metrics) are not going to be performed. Spatial adaptive quantization improves perceptual quality only and may reduce PSNR; disable it for objective quality evaluation.</p>
+</div>
+</section>
+<section id="game-and-studio-broadcasting">
+<h4><span class="section-number">6.2.2. </span>Game and Studio Broadcasting<a class="headerlink" href="#game-and-studio-broadcasting" title="Link to this heading">#</a></h4>
+<p>For game and studio broadcasting where good quality is needed with reasonable encoding performance.</p>
+<p><strong>Recommended Settings:</strong></p>
+<ul class="simple">
+<li><p>Medium to slow presets (p4-p6) with high-quality or ultra-high-quality tuning</p></li>
+<li><p><strong>Constant bitrate (CBR)</strong> rate control</p></li>
+<li><p><strong>Medium VBV buffer size (1 second)</strong> - bufsize = maxrate = bitrate</p></li>
+<li><p>Lookahead enabled</p></li>
+<li><p>B-frames enabled with B-frames as reference</p></li>
+<li><p><strong>Spatial adaptive quantization for non-objective quality evaluation</strong> (temporal AQ should be disabled for CBR)</p></li>
+<li><p>Multi-pass encoding (quarter resolution for performance balance)</p></li>
+<li><p>Finite GOP length (approximately 2 seconds)</p></li>
+</ul>
+<p><strong>Example - 1080p60:</strong></p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>ffmpeg -y -hwaccel cuda -hwaccel_output_format cuda -i input.mp4 \
+    -c:a copy -c:v hevc_nvenc \
+    -preset p5 -tune hq -multipass qres \
+    -rc cbr -b:v 10M -maxrate 10M -bufsize 10M \
+    -bf 3 -b_ref_mode middle -g 120 \
+    -rc-lookahead 16 \
+    -fps_mode passthrough output.mp4
+</pre></div>
+</div>
+<p><strong>Example - 4K60:</strong></p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>ffmpeg -y -hwaccel cuda -hwaccel_output_format cuda -i input.mp4 \
+    -c:a copy -c:v hevc_nvenc \
+    -preset p5 -tune hq -multipass qres \
+    -rc cbr -b:v 40M -maxrate 40M -bufsize 40M \
+    -bf 3 -b_ref_mode middle -g 120 \
+    -rc-lookahead 20 \
+    -fps_mode passthrough output.mp4
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p><strong>CBR with 1-second VBV buffer</strong>: NVIDIA’s official recommendation uses CBR (<code class="docutils literal notranslate"><span class="pre">-bufsize</span> <span class="pre">=</span> <span class="pre">-maxrate</span> <span class="pre">=</span> <span class="pre">-b:v</span></code>) for predictable bandwidth and performance in real-time game and studio broadcasting. The 1-second buffer allows some bitrate flexibility while maintaining overall rate consistency.</p>
+</div>
+</section>
+<section id="low-latency-streaming-and-real-time-applications">
+<h4><span class="section-number">6.2.3. </span>Low-Latency Streaming and Real-Time Applications<a class="headerlink" href="#low-latency-streaming-and-real-time-applications" title="Link to this heading">#</a></h4>
+<p>For interactive applications such as game streaming, live broadcasting, video conferencing, and remote desktop where latency must be minimized (16-100ms):</p>
+<p><strong>Recommended Settings:</strong></p>
+<ul class="simple">
+<li><p>Fast preset (p2) or medium preset (p4) with ultra-low-latency or low-latency tuning</p></li>
+<li><p><strong>Constant bitrate (CBR)</strong> rate control</p></li>
+<li><p><strong>Multi-pass encoding</strong> (quarter or full resolution - evaluate based on quality/performance tradeoff)</p></li>
+<li><p><strong>Very low VBV buffer size</strong> (single frame: <code class="docutils literal notranslate"><span class="pre">bufsize</span> <span class="pre">=</span> <span class="pre">bitrate</span> <span class="pre">/</span> <span class="pre">framerate</span></code>)</p></li>
+<li><p><strong>Unidirectional B-frames</strong> (<code class="docutils literal notranslate"><span class="pre">-bf</span> <span class="pre">0</span> <span class="pre">-unidir_b</span> <span class="pre">1</span></code>) for better compression with no latency penalty</p></li>
+<li><p>Very large or infinite GOP length (<code class="docutils literal notranslate"><span class="pre">-g</span> <span class="pre">999999</span></code> or <code class="docutils literal notranslate"><span class="pre">-intra-refresh</span> <span class="pre">1</span> <span class="pre">-g</span> <span class="pre">250</span></code>) to avoid periodic I-frame spikes</p></li>
+<li><p><strong>Spatial adaptive quantization for non-objective quality evaluation</strong> (temporal AQ should be disabled for CBR)</p></li>
+<li><p>Optional: <strong>Intra refresh</strong> (<code class="docutils literal notranslate"><span class="pre">-intra-refresh</span> <span class="pre">1</span></code>), <strong>non-reference P frames</strong> (<code class="docutils literal notranslate"><span class="pre">-nonref_p</span> <span class="pre">1</span></code>) for error resilience</p></li>
+</ul>
+<p><strong>Example - Ultra-Low Latency with Non-Reference P Frames (1080p30):</strong></p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>ffmpeg -y -hwaccel cuda -hwaccel_output_format cuda -i input.mp4 \
+    -c:a copy -c:v hevc_nvenc \
+    -preset p2 -tune ull \
+    -rc cbr -b:v 5M -bufsize 167K -maxrate 5M \
+    -bf 0 -unidir_b 1 -g 999999 -nonref_p 1 \
+    -fps_mode passthrough output.mp4
+</pre></div>
+</div>
+<p><strong>Example - Low Latency with Unidirectional B-frames (Recommended, 1080p30):</strong></p>
+<p>For improved compression efficiency while maintaining true low latency (requires FFmpeg 7.1+):</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>ffmpeg -y -hwaccel cuda -hwaccel_output_format cuda -i input.mp4 \
+    -c:a copy -c:v hevc_nvenc \
+    -preset p4 -tune ll -multipass qres \
+    -rc cbr -b:v 5M -bufsize 167K -maxrate 5M \
+    -bf 0 -unidir_b 1 -g 999999 \
+    -fps_mode passthrough output.mp4
+</pre></div>
+</div>
+<p>This configuration uses unidirectional B-frames (IBBBBB pattern) for 5-10% better compression than P-only encoding with no frame reordering delay, multi-pass encoding for better rate control, and infinite GOP to avoid periodic I-frame bitrate spikes.</p>
+<p><strong>Example - Low Latency High Quality with Intra Refresh (1080p30):</strong></p>
+<p>For better quality with acceptable latency and improved error resilience:</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>ffmpeg -y -hwaccel cuda -hwaccel_output_format cuda -i input.mp4 \
+    -c:a copy -c:v hevc_nvenc \
+    -preset p6 -tune ll -multipass qres \
+    -rc cbr -b:v 5M -bufsize 167K -maxrate 5M \
+    -bf 0 -unidir_b 1 -intra-refresh 1 -g 250 \
+    -fps_mode passthrough output.mp4
+</pre></div>
+</div>
+<p>This configuration demonstrates <strong>intra refresh</strong> (<code class="docutils literal notranslate"><span class="pre">-intra-refresh</span> <span class="pre">1</span> <span class="pre">-g</span> <span class="pre">250</span></code>), which gradually refreshes the video with intra-coded macroblocks instead of periodic full I-frames. This avoids bitrate spikes while providing error resilience for unreliable networks.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p><strong>CBR with 1-frame VBV buffer</strong>: The VBV buffer size for single-frame buffering can be calculated as: <code class="docutils literal notranslate"><span class="pre">bufsize</span> <span class="pre">=</span> <span class="pre">bitrate</span> <span class="pre">/</span> <span class="pre">framerate</span></code>. For example, at 5 Mbps and 30 fps: <code class="docutils literal notranslate"><span class="pre">bufsize</span> <span class="pre">=</span> <span class="pre">5000000</span> <span class="pre">/</span> <span class="pre">30</span> <span class="pre">≈</span> <span class="pre">167K</span></code>.</p>
+</div>
+</section>
+<section id="lossless-encoding">
+<h4><span class="section-number">6.2.4. </span>Lossless Encoding<a class="headerlink" href="#lossless-encoding" title="Link to this heading">#</a></h4>
+<p>For applications requiring bit-exact reproduction of the input (archival, intermediate formats, mastering):</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>ffmpeg -y -f rawvideo -s 1920x1080 -pix_fmt yuv420p -i input.yuv \
+    -c:v hevc_nvenc -preset p4 -tune lossless \
+    -fps_mode passthrough output.mp4
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p><strong>Why preset matters for lossless</strong>: Even though lossless mode always produces bit-exact output regardless of preset, the preset still affects:</p>
+<ul class="simple">
+<li><p><strong>Encoding speed</strong>: Faster presets (p1-p3) encode quicker; slower presets (p4-p7) take longer</p></li>
+<li><p><strong>Compression efficiency</strong>: Slower presets produce smaller file sizes through more thorough analysis, even though quality is identical</p></li>
+<li><p><strong>B-frame usage</strong>: Presets p3 and higher automatically enable B-frames in lossless mode for better compression</p></li>
+</ul>
+<p><strong>Recommendation</strong>: Use p4-p5 for balanced speed and compression. Use p7 for maximum compression when encoding time is not a concern. Lossless encoding produces significantly larger files than lossy encoding. HEVC lossless typically achieves better compression ratios than H.264 lossless.</p>
+</div>
+</section>
+<section id="memory-constrained-encoding">
+<h4><span class="section-number">6.2.5. </span>Memory-Constrained Encoding<a class="headerlink" href="#memory-constrained-encoding" title="Link to this heading">#</a></h4>
+<p>For scenarios with limited GPU memory (embedded systems, multi-session encoding), the following guidelines reduce memory footprint:</p>
+<p><strong>Recommended Settings:</strong></p>
+<ul class="simple">
+<li><p>Disable or reduce B-frames (<code class="docutils literal notranslate"><span class="pre">-bf</span> <span class="pre">0</span></code> or <code class="docutils literal notranslate"><span class="pre">-bf</span> <span class="pre">1</span></code>)</p></li>
+<li><p>Reduce maximum reference frames (<code class="docutils literal notranslate"><span class="pre">-dpb_size</span> <span class="pre">1</span></code> or <code class="docutils literal notranslate"><span class="pre">-dpb_size</span> <span class="pre">2</span></code>) - Controls DPB (Decoded Picture Buffer) size</p></li>
+<li><p>Use single-pass rate control (<code class="docutils literal notranslate"><span class="pre">-multipass</span> <span class="pre">disabled</span></code>)</p></li>
+<li><p>Disable adaptive quantization (<code class="docutils literal notranslate"><span class="pre">-spatial-aq</span> <span class="pre">0</span> <span class="pre">-temporal-aq</span> <span class="pre">0</span></code>)</p></li>
+<li><p>Disable lookahead (<code class="docutils literal notranslate"><span class="pre">-rc-lookahead</span> <span class="pre">0</span></code>)</p></li>
+<li><p>Disable weighted prediction (<code class="docutils literal notranslate"><span class="pre">-weighted_pred</span> <span class="pre">0</span></code>)</p></li>
+<li><p>Disable temporal filter (<code class="docutils literal notranslate"><span class="pre">-tf_level</span> <span class="pre">0</span></code>)</p></li>
+<li><p>Avoid UHQ tuning info (it enables lookahead and temporal filter)</p></li>
+</ul>
+<p><strong>Example:</strong></p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>ffmpeg -y -hwaccel cuda -hwaccel_output_format cuda -i input.mp4 \
+    -c:a copy -c:v hevc_nvenc \
+    -preset p4 -tune hq -multipass disabled \
+    -bf 0 -dpb_size 1 -rc-lookahead 0 \
+    -spatial-aq 0 -temporal-aq 0 -weighted_pred 0 -tf_level 0 \
+    -b:v 5M \
+    -fps_mode passthrough output.mp4
+</pre></div>
+</div>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>Memory reduction settings will negatively impact encoding quality and compression efficiency. Use only when memory constraints are critical.</p>
+</div>
+</section>
+<section id="high-quality-live-streaming">
+<h4><span class="section-number">6.2.6. </span>High-Quality Live Streaming<a class="headerlink" href="#high-quality-live-streaming" title="Link to this heading">#</a></h4>
+<p>For live streaming scenarios where quality is more important than absolute minimal latency (e.g., content creation, professional broadcasting), use higher presets with optimized settings for smooth playback:</p>
+<p><strong>Recommended Settings:</strong></p>
+<ul class="simple">
+<li><p>High-quality preset (p6 or p7) with high-quality or ultra-high-quality tuning</p></li>
+<li><p>CBR rate control for consistent bandwidth</p></li>
+<li><p>B-frames for better compression</p></li>
+<li><p>Moderate VBV buffer (1-2 seconds)</p></li>
+<li><p>Adaptive quantization for non-objective quality evaluation</p></li>
+<li><p>GOP aligned with segment duration (typically 2 seconds)</p></li>
+</ul>
+<p><strong>Example - 4K60 High-Quality Stream:</strong></p>
+<p>For ultra-high-definition live streaming:</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>ffmpeg -y -hwaccel cuda -hwaccel_output_format cuda -i input.mp4 \
+    -c:a copy -c:v hevc_nvenc \
+    -preset p7 -tune hq -multipass qres \
+    -rc cbr -b:v 20M -bufsize 40M -maxrate 20M \
+    -bf 4 -b_ref_mode middle -g 120 \
+    -rc-lookahead 16 -lookahead_level 2 \
+    -split_encode_mode forced \
+    -fps_mode passthrough output.mp4
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>HEVC is recommended for 4K60 streaming for better compression efficiency over H.264. AV1 provides even better compression but check platform compatibility.</p>
+</div>
+</section>
+<section id="multi-stream-adaptive-bitrate-abr-ladder">
+<h4><span class="section-number">6.2.7. </span>Multi-Stream Adaptive Bitrate (ABR) Ladder<a class="headerlink" href="#multi-stream-adaptive-bitrate-abr-ladder" title="Link to this heading">#</a></h4>
+<p>Modern streaming platforms require multiple resolution/bitrate renditions for adaptive streaming. This example demonstrates creating a 6-stream ABR ladder from a single 4K60 input.</p>
+<p><strong>Example - 6-Stream ABR Ladder:</strong></p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>ffmpeg -y -hwaccel cuda -hwaccel_output_format cuda -i input.mp4 \
+    -filter_complex &quot;\
+        [0:v]split=6[base][s1][s2][s3][s4][s5]; \
+        [base]scale_cuda=3840:2160:interp_algo=bilinear[v0]; \
+        [s1]scale_cuda=2560:1440:interp_algo=bilinear[v1]; \
+        [s2]scale_cuda=1920:1080:interp_algo=bilinear[v2]; \
+        [s3]scale_cuda=1280:720:interp_algo=bilinear[v3]; \
+        [s4]scale_cuda=854:480:interp_algo=bilinear[v4]; \
+        [s5]scale_cuda=640:360:interp_algo=bilinear[v5]&quot; \
+    -map &quot;[v0]&quot; -c:v hevc_nvenc -preset p6 -tune hq -b:v 25M -maxrate 25M -bufsize 50M -g 120 -bf 2 output_4k60.mp4 \
+    -map &quot;[v1]&quot; -c:v hevc_nvenc -preset p6 -tune hq -b:v 12M -maxrate 12M -bufsize 24M -g 120 -bf 2 output_1440p60.mp4 \
+    -map &quot;[v2]&quot; -c:v hevc_nvenc -preset p6 -tune hq -b:v 8M -maxrate 8M -bufsize 16M -g 120 -bf 2 output_1080p60.mp4 \
+    -map &quot;[v3]&quot; -c:v hevc_nvenc -preset p6 -tune hq -b:v 5M -maxrate 5M -bufsize 10M -g 120 -bf 2 output_720p60.mp4 \
+    -map &quot;[v4]&quot; -c:v hevc_nvenc -preset p6 -tune hq -b:v 2M -maxrate 2M -bufsize 4M -g 60 -bf 2 -r 30 output_480p30.mp4 \
+    -map &quot;[v5]&quot; -c:v hevc_nvenc -preset p6 -tune hq -b:v 1M -maxrate 1M -bufsize 2M -g 60 -bf 2 -r 30 output_360p30.mp4
+</pre></div>
+</div>
+</section>
+<section id="video-editing-workflows">
+<h4><span class="section-number">6.2.8. </span>Video Editing Workflows<a class="headerlink" href="#video-editing-workflows" title="Link to this heading">#</a></h4>
+<p>Video editing applications require different encoding strategies depending on the export scenario. This section covers the most common workflows.</p>
+<p><strong>Ultra-High Quality Exports</strong></p>
+<p>For final deliverables where quality is paramount (film, broadcast, archival):</p>
+<p><strong>Example - 4K60 UHQ Export:</strong></p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>ffmpeg -y -hwaccel cuda -hwaccel_output_format cuda -i input.mp4 \
+    -c:a copy -c:v hevc_nvenc \
+    -preset p7 -tune uhq \
+    -rc vbr -cq 19 -maxrate 80M \
+    -bf 5 -b_ref_mode middle -g 120 \
+    -rc-lookahead 26 \
+    -multipass fullres \
+    -fps_mode passthrough output.mp4
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p><strong>UHQ tuning</strong> (<code class="docutils literal notranslate"><span class="pre">-tune</span> <span class="pre">uhq</span></code>) is only supported for HEVC and AV1 on Turing and newer architectures. It enables lookahead and temporal filtering automatically for maximum quality. This mode requires significantly more GPU memory.</p>
+</div>
+<p><strong>Fast Export</strong></p>
+<p>For quick previews, proxies, or when speed is critical:</p>
+<p><strong>Example - 4K60 Fast Export:</strong></p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>ffmpeg -y -hwaccel cuda -hwaccel_output_format cuda -i input.mp4 \
+    -c:a copy -c:v hevc_nvenc \
+    -preset p1 -tune hq \
+    -rc vbr -cq 23 -maxrate 30M \
+    -bf 0 -g 120 \
+    -fps_mode passthrough output.mp4
+</pre></div>
+</div>
+<p><strong>Split Frame Encoding (Parallel Processing)</strong></p>
+<p>For maximizing throughput on GPUs with multiple NVENC engines or using split-frame encoding:</p>
+<p><strong>Example - 4K60 with 3-Way Split Frame:</strong></p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>ffmpeg -y -hwaccel cuda -hwaccel_output_format cuda -i input.mp4 \
+    -c:a copy -c:v hevc_nvenc \
+    -preset p4 -tune hq \
+    -rc vbr -cq 20 -maxrate 40M \
+    -bf 2 -g 120 \
+    -split_encode_mode 3 \
+    -multipass disabled \
+    -fps_mode passthrough output.mp4
+</pre></div>
+</div>
+</section>
+<section id="high-resolution-encoding-8k">
+<h4><span class="section-number">6.2.9. </span>High-Resolution Encoding (8K)<a class="headerlink" href="#high-resolution-encoding-8k" title="Link to this heading">#</a></h4>
+<p>Ultra-high-resolution 8K content requires careful parameter tuning for optimal quality and performance.</p>
+<p><strong>8K60 General Guidelines:</strong></p>
+<ul class="simple">
+<li><p>HEVC or AV1 strongly recommended (H.264 is inefficient at 8K)</p></li>
+<li><p>Significantly higher bitrates (80-150 Mbps for HEVC)</p></li>
+<li><p>May require multiple NVENC engines with split encoding for real-time performance</p></li>
+<li><p>Ensure sufficient GPU memory (8GB+ recommended)</p></li>
+<li><p>Consider reducing preset if real-time encoding is required</p></li>
+</ul>
+<p><strong>Example - 8K60 HEVC High Quality (VOD/Offline):</strong></p>
+<p>For offline encoding or VOD where quality is paramount:</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>ffmpeg -y -hwaccel cuda -hwaccel_output_format cuda -i input.mp4 \
+    -c:a copy -c:v hevc_nvenc \
+    -preset p5 -tune hq \
+    -rc vbr -cq 19 -maxrate 180M \
+    -bf 3 -b_ref_mode middle -g 120 \
+    -rc-lookahead 16 \
+    -fps_mode passthrough output.mp4
+</pre></div>
+</div>
+<p><strong>Example - 8K60 HEVC Live Streaming:</strong></p>
+<p>For real-time 8K streaming where encoding performance is critical:</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>ffmpeg -y -hwaccel cuda -hwaccel_output_format cuda -i input.mp4 \
+    -c:a copy -c:v hevc_nvenc \
+    -preset p3 -tune hq -multipass qres \
+    -rc cbr -b:v 100M -maxrate 100M -bufsize 200M \
+    -bf 5 -b_ref_mode middle -g 120 \
+    -rc-lookahead 12 -lookahead_level 1 \
+    -split_encode_mode forced \
+    -fps_mode passthrough output.mp4
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p><strong>8K Streaming Configuration:</strong></p>
+<ul class="simple">
+<li><p><strong>CBR with 2-second buffer</strong> (<code class="docutils literal notranslate"><span class="pre">-bufsize</span> <span class="pre">200M</span></code> = 100M × 2) for consistent bandwidth</p></li>
+<li><p><strong>Preset p3</strong> for real-time performance balance (p4-p7 may be too slow for real-time 8K60)</p></li>
+<li><p><strong>Multi-pass quarter resolution</strong> for better rate control without excessive overhead</p></li>
+<li><p><strong>Split encoding</strong> to utilize multiple NVENC engines for improved throughput</p></li>
+<li><p><strong>Reduced lookahead</strong> (12 frames) to minimize latency and memory usage</p></li>
+<li><p><strong>Bitrate</strong>: 100 Mbps is conservative for 8K60; increase to 120-150 Mbps for complex content</p></li>
+</ul>
+</div>
+</section>
+</section>
+</section>
+<section id="performance-evaluation-and-optimization">
+<h2><span class="section-number">7. </span>Performance Evaluation and Optimization<a class="headerlink" href="#performance-evaluation-and-optimization" title="Link to this heading">#</a></h2>
+<p>Various factors affect the performance of hardware accelerated transcoding on the GPU. Getting the highest performance for your workload requires some tuning. This section provides some tips for measuring and optimizing end-to-end transcode performance.</p>
+<p>NVIDIA Video Codec SDK documentation publishes performance of GPU hardware accelerated encoder and decoder as stand-alone numbers, measured using high-performance encode or decode application included in the SDK. Although FFmpeg software is highly optimized, its performance is slightly lower than the performance reported in the SDK documentation, mainly due to software overheads and additional setup/initialization time within FFmpeg code. Therefore, to get high transcoding throughput using FFmpeg, it is essential to saturate the hardware encoder and decoder engines such that the initialization time overhead for one session gets hidden behind the transcoding time of other sessions. This can be achieved by running multiple parallel encode/decode sessions on the hardware (see Section <a class="reference internal" href="#n-hwaccel-encode-from-yuv-or-raw-data"><span class="std std-ref">1:N Encode from YUV or RAW Data</span></a>). In such a case, the <em>aggregate</em> transcode performance with FFmpeg matches closely with the theoretically expected hardware performance.</p>
+<section id="measuring-aggregate-performance">
+<h3><span class="section-number">7.1. </span>Measuring Aggregate Performance<a class="headerlink" href="#measuring-aggregate-performance" title="Link to this heading">#</a></h3>
+<p>To measure GPU hardware accelerated aggregate performance, follow the steps below:</p>
+<ol class="arabic simple">
+<li><p>Run multiple simultaneous sessions (say 4 FFmpeg sessions) in parallel, each performing transcoding.</p></li>
+<li><p>Ensure the inputs have large number of frames (more than 15 seconds of video is recommended) so that initialization time overhead can be ignored.</p></li>
+<li><p>Measure the time required by each transcode.</p></li>
+<li><p>Derive the aggregate performance in terms of frames per second (FPS).</p></li>
+</ol>
+</section>
+<section id="monitoring-gpu-and-codec-utilization-with-nvidia-smi-dmon">
+<h3><span class="section-number">7.2. </span>Monitoring GPU and Codec Utilization with nvidia-smi dmon<a class="headerlink" href="#monitoring-gpu-and-codec-utilization-with-nvidia-smi-dmon" title="Link to this heading">#</a></h3>
+<p>Use <code class="docutils literal notranslate"><span class="pre">nvidia-smi</span> <span class="pre">dmon</span></code> to observe GPU utilization and PCIe traffic while FFmpeg runs. This helps verify that the pipeline is using the hardware efficiently and not bottlenecked by unnecessary data copies between GPU and host.</p>
+<p>Run <code class="docutils literal notranslate"><span class="pre">nvidia-smi</span> <span class="pre">dmon</span></code> in a separate terminal (or in the background) while running your FFmpeg command. The <code class="docutils literal notranslate"><span class="pre">-s</span></code> option selects metrics; useful combinations include:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">-s</span> <span class="pre">puc</span></code> (default): power (p), utilization (u), and clocks (c)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">-s</span> <span class="pre">put</span></code>: power, utilization, and <strong>PCIe Rx/Tx throughput (t)</strong> — helpful to spot extra host–GPU traffic when frames are copied to or from host memory</p></li>
+</ul>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>nvidia-smi dmon -s put
+</pre></div>
+</div>
+<p>Per-engine NVENC/NVDEC activity is available on GPM-capable GPUs via <strong>GPU Performance Monitoring</strong> with <code class="docutils literal notranslate"><span class="pre">--gpm-metrics</span></code> (e.g. <code class="docutils literal notranslate"><span class="pre">--gpm-metrics=30,166</span></code> for NVDEC 0 and NVENC 0). GPM codec metrics are supported on <strong>Hopper and newer data-center/MIG-enabled GPUs</strong> (e.g. H100, GB200); GeForce support is limited and many consumer boards will report 0/- for these fields even under load. See <code class="docutils literal notranslate"><span class="pre">nvidia-smi</span> <span class="pre">dmon</span> <span class="pre">-h</span></code> for the full list (NVDEC 0–7 = 30–37, NVENC 0–3 = 166–169). On all platforms, including GeForce, the standard <strong>enc</strong> and <strong>dec</strong> columns from <code class="docutils literal notranslate"><span class="pre">-s</span> <span class="pre">put</span></code> (or <code class="docutils literal notranslate"><span class="pre">-s</span> <span class="pre">u</span></code>) report legacy NVDEC/NVENC utilization — use these together with <strong>rxpci</strong>/<strong>txpci</strong> to compare pipelines when GPM is not available.</p>
+<p>When transcoding is GPU-bound and efficient, you should see sustained GPU utilization (and enc/dec % when available); if frames are being copied to or from the host unnecessarily, PCIe throughput will be higher and end-to-end FPS lower.</p>
+</section>
+<section id="decoder-performance-keep-frames-on-the-gpu">
+<h3><span class="section-number">7.3. </span>Decoder Performance: Keep Frames on the GPU<a class="headerlink" href="#decoder-performance-keep-frames-on-the-gpu" title="Link to this heading">#</a></h3>
+<p>When measuring decoder performance with a decode-to-null pipeline, <code class="docutils literal notranslate"><span class="pre">-hwaccel_output_format</span> <span class="pre">cuda</span></code> matters. Without it, the decoder outputs frames in host memory; FFmpeg then copies each frame from GPU to CPU before discarding it, which adds PCIe traffic and lowers the FPS reported by <code class="docutils literal notranslate"><span class="pre">-benchmark</span></code>. With <code class="docutils literal notranslate"><span class="pre">-hwaccel_output_format</span> <span class="pre">cuda</span></code>, decoded frames stay on the GPU and are discarded there, so the benchmark more closely reflects NVDEC throughput without the copy‑to‑host overhead.</p>
+<p>Compare both commands (e.g. with <code class="docutils literal notranslate"><span class="pre">nvidia-smi</span> <span class="pre">dmon</span> <span class="pre">-s</span> <span class="pre">put</span></code> in a separate terminal to observe <strong>dec</strong> utilization and <strong>rxpci</strong>/<strong>txpci</strong>):</p>
+<p><strong>Without</strong> <code class="docutils literal notranslate"><span class="pre">-hwaccel_output_format</span> <span class="pre">cuda</span></code> — frames copied to host, lower FPS:</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>ffmpeg -benchmark -hwaccel cuda -i input.mp4 -f null -
+</pre></div>
+</div>
+<p><strong>With</strong> <code class="docutils literal notranslate"><span class="pre">-hwaccel_output_format</span> <span class="pre">cuda</span></code> — frames stay on GPU, higher FPS:</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>ffmpeg -benchmark -hwaccel cuda -hwaccel_output_format cuda -i input.mp4 -f null -
+</pre></div>
+</div>
+<p>The second command typically reports higher decode FPS and shows lower PCIe traffic in <code class="docutils literal notranslate"><span class="pre">nvidia-smi</span> <span class="pre">dmon</span></code>, since frames are not transferred to host memory.</p>
+</section>
+<section id="settings-for-reduced-initialization-time">
+<h3><span class="section-number">7.4. </span>Settings for Reduced Initialization Time<a class="headerlink" href="#settings-for-reduced-initialization-time" title="Link to this heading">#</a></h3>
+<p>To prepare longer videos for streamed distribution, they are typically split into smaller chunks and each chunk is encoded separately. Such chunk-based encoding avoids error propagation, provides clean boundaries for streaming bandwidth adaptation and helps parallelizing transcoding workloads on the servers. Transcoding smaller video chunks using GPU-hardware-accelerated transcoding, however, poses a challenge because the initialization time overhead of each FFmpeg process becomes significant.</p>
+<p>To minimize the overhead when transcoding <em>M</em> input files into <em>MN</em> output files (i.e. when each of the <em>M</em> inputs is transcoded into <em>N</em> outputs), it is better to minimize the number of FFmpeg processes launched (see Section <a class="reference internal" href="#n-hwaccel-encode-from-yuv-or-raw-data"><span class="std std-ref">1:N Encode from YUV or RAW Data</span></a> for example command lines).</p>
+<p>Additionally, follow these tips to reduce the FFmpeg initialization time overhead:</p>
+<ul class="simple">
+<li><p>Set the following environment variables:</p></li>
+</ul>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>export CUDA_VISIBLE_DEVICES=0  # Use ID for the GPU device which you plan to use for transcode
+export CUDA_DEVICE_MAX_CONNECTIONS=2
+</pre></div>
+</div>
+<ul class="simple">
+<li><p>Use FFmpeg command lines such as those in Sections <a class="reference internal" href="#n-hwaccel-transcode-with-scaling"><span class="std std-ref">1:N Transcode with Scaling</span></a> and <a class="reference internal" href="#n-hwaccel-encode-from-yuv-or-raw-data"><span class="std std-ref">1:N Encode from YUV or RAW Data</span></a>. These command lines share the CUDA context across multiple transcode sessions, thereby reducing the CUDA context initialization time overhead significantly.</p></li>
+</ul>
+<p class="rubric-h1 rubric">Notices</p>
+<p class="rubric-h2 rubric">Notice</p>
+<p>This document is provided for information purposes only and shall not be regarded as a warranty of a certain functionality, condition, or quality of a product. NVIDIA Corporation (“NVIDIA”) makes no representations or warranties, expressed or implied, as to the accuracy or completeness of the information contained in this document and assumes no responsibility for any errors contained herein. NVIDIA shall have no liability for the consequences or use of such information or for any infringement of patents or other rights of third parties that may result from its use. This document is not a commitment to develop, release, or deliver any Material (defined below), code, or functionality.</p>
+<p>NVIDIA reserves the right to make corrections, modifications, enhancements, improvements, and any other changes to this document, at any time without notice.</p>
+<p>Customer should obtain the latest relevant information before placing orders and should verify that such information is current and complete.</p>
+<p>NVIDIA products are sold subject to the NVIDIA standard terms and conditions of sale supplied at the time of order acknowledgment, unless otherwise agreed in an individual sales agreement signed by authorized representatives of NVIDIA and customer (“Terms of Sale”). NVIDIA hereby expressly objects to applying any customer general terms and conditions with regards to the purchase of the NVIDIA product referenced in this document. No contractual obligations are formed either directly or indirectly by this document.</p>
+<p>NVIDIA products are not designed, authorized, or warranted to be suitable for use in medical, military, aircraft, space, or life support equipment, nor in applications where failure or malfunction of the NVIDIA product can reasonably be expected to result in personal injury, death, or property or environmental damage. NVIDIA accepts no liability for inclusion and/or use of NVIDIA products in such equipment or applications and therefore such inclusion and/or use is at customer’s own risk.</p>
+<p>NVIDIA makes no representation or warranty that products based on this document will be suitable for any specified use. Testing of all parameters of each product is not necessarily performed by NVIDIA. It is customer’s sole responsibility to evaluate and determine the applicability of any information contained in this document, ensure the product is suitable and fit for the application planned by customer, and perform the necessary testing for the application in order to avoid a default of the application or the product. Weaknesses in customer’s product designs may affect the quality and reliability of the NVIDIA product and may result in additional or different conditions and/or requirements beyond those contained in this document. NVIDIA accepts no liability related to any default, damage, costs, or problem which may be based on or attributable to: (i) the use of the NVIDIA product in any manner that is contrary to this document or (ii) customer product designs.</p>
+<p class="rubric-h2 rubric">Trademarks</p>
+<p>NVIDIA, the NVIDIA logo, and cuBLAS, CUDA, CUDA Toolkit, cuDNN, DALI, DIGITS, DGX, DGX-1, DGX-2, DGX Station, DLProf, GPU, Jetson, Kepler, Maxwell, NCCL, Nsight Compute, Nsight Systems, NVCaffe, NVIDIA Deep Learning SDK, NVIDIA Developer Program, NVIDIA GPU Cloud, NVLink, NVSHMEM, PerfWorks, Pascal, SDK Manager, Tegra, TensorRT, TensorRT Inference Server, Tesla, TF-TRT, Triton Inference Server, Turing, and Volta are trademarks and/or registered trademarks of NVIDIA Corporation in the United States and other countries. Other company and product names may be trademarks of the respective companies with which they are associated.</p>
+</section>
+</section>
+</div>
+</section>\n</article>
+</body>
+</html>
