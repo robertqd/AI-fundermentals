@@ -29,6 +29,7 @@ NVIDIA GPU 目前占据了 AI 训练算力的绝大部分市场。从 Volta（V1
 这三条线合起来，基本就决定了大模型的训练吞吐和推理成本。
 
 - **[深入理解 GPU 架构](nvidia/understand_gpu_architecture/README.md)**：包含 GPU 与 CPU 的特性对比、内存层次模型（全局内存、共享内存等），以及 Tesla V100、RTX 5000 等具体硬件实例的分析。
+- **[NVIDIA 硬件解码流程](nvidia/video_codec/README.md)**：解析独立于 CUDA Core 的 NVDEC / NVJPEG 媒体引擎，从 Demux、Parser 到 Decoder 的完整流水线，以及多模态推理和训练数据加载中的落地方式。
 - **[GPGPU vs NPU：大模型推理训练对比](nvidia/GPGPU_vs_NPU_大模型推理训练对比.md)**：探讨在大语言模型时代，不同架构芯片在训练与推理场景下的优劣势与选型指南。
 
 ### 2.2 Google TPU 架构

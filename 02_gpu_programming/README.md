@@ -74,6 +74,8 @@ GPU 性能分析不宜只看一个指标，实践上一般从三个视角交叉�
 
 - [nvbandwidth 最佳实践](04_profiling/01_nvbandwidth_best_practices.md) - 深入了解和测量 GPU 的显存带宽与 PCIe 传输带宽。
 
+视频和图像预处理不走 CUDA Kernel，而是走独立的 NVDEC / NVJPEG 引擎。如果工作负载是多模态训练或视频推理，解码流水线本身往往先成为瓶颈，参见 [NVIDIA 硬件解码流程](../01_hardware_architecture/nvidia/video_codec/01_nvidia_decode_pipeline.md)。
+
 ---
 
 ## 5. 学习资源库

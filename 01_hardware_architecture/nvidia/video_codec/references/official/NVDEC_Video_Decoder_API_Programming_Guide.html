@@ -1,0 +1,1344 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>NVDEC Video Decoder API Programming Guide (SDK 13.1)</title>
+<style>
+:root { color-scheme: light; }
+body { font-family: "Segoe UI", "WenQuanYi Micro Hei", "Noto Sans CJK SC", sans-serif;
+       max-width: 960px; margin: 24px auto; padding: 0 20px 64px; line-height: 1.65; color: #111827; }
+h1,h2,h3 { color: #0f4c81; }
+h1 { border-bottom: 2px solid #1a6fc4; padding-bottom: 8px; }
+pre, code { font-family: "JetBrains Mono", "Cascadia Code", ui-monospace, monospace; }
+pre { background: #0f172a; color: #e2e8f0; padding: 14px; overflow: auto; border-radius: 8px; }
+code { background: #f1f5f9; padding: 1px 5px; border-radius: 4px; }
+pre code { background: transparent; color: inherit; padding: 0; }
+table { border-collapse: collapse; width: 100%; margin: 12px 0 20px; font-size: 14px; }
+th, td { border: 1px solid #cbd5e1; padding: 6px 10px; text-align: left; }
+th { background: #e0f2fe; }
+blockquote { border-left: 4px solid #1a6fc4; margin-left: 0; padding: 4px 12px; background: #f8fafc; }
+img { max-width: 100%; }
+.meta { color: #64748b; font-size: 13px; }
+</style>
+</head>
+<body>
+<p class="meta">Offline copy of NVIDIA public docs. Source: <a href="https://docs.nvidia.com/video-technologies/video-codec-sdk/13.1/nvdec-video-decoder-api-prog-guide/">https://docs.nvidia.com/video-technologies/video-codec-sdk/13.1/nvdec-video-decoder-api-prog-guide/</a></p>\n<article>\n<section id="nvdec-video-decoder-api-programming-guide">
+<h1>NVDEC Video Decoder API Programming Guide<a class="headerlink" href="#nvdec-video-decoder-api-programming-guide" title="Link to this heading">#</a></h1>
+<div class="toctree-wrapper compound">
+<span id="document-overview"></span><section id="overview">
+<h2><span class="section-number">1. </span>Overview<a class="headerlink" href="#overview" title="Link to this heading">#</a></h2>
+<p>NVIDIA GPUs - beginning with the NVIDIA® Fermi™ generation and NVIDIA Jetson platforms contain a video decoder engine (referred to as NVDEC in this document) which provides fully-accelerated hardware video decoding capability. NVDEC can be used for decoding bitstreams of various formats: AV1, H.264, HEVC (H.265), VP8, VP9, MPEG-1, MPEG-2, MPEG-4 and VC-1. NVDEC runs completely independently of compute/graphics engine.</p>
+<p>NVIDIA provides software API and libraries for programming NVDEC. The software API, hereafter referred to as NVDECODE API, lets developers access the video decoding features of NVDEC and interoperate NVDEC with other engines on the GPU.</p>
+<p>NVDEC decodes the compressed video streams and copies the resulting YUV frames to video memory (in GPUs) or system memory (in Jetson platforms). With frames in video/system memory, video post processing can be done using CUDA. The NVDECODE API also provides CUDA-optimized implementation of commonly used post-processing operations such as scaling, cropping, aspect ratio conversion, de-interlacing and color space conversion to many popular output video formats. The client can choose to use the CUDA-optimized implementations provided by the NVDECODE API for these post-processing steps or choose to implement their own post-processing on the decoded output frames.</p>
+<p>Decoded video frames can be presented to the display with graphics interoperability for video playback, passed directly to a dedicated hardware encoder (NVENC) for high-performance video transcoding, used for GPU accelerated inferencing or consumed further by CUDA or CPU-based processing.</p>
+<section id="supported-codecs">
+<h3><span class="section-number">1.1. </span>Supported Codecs<a class="headerlink" href="#supported-codecs" title="Link to this heading">#</a></h3>
+<p>The codecs supported by NVDECODE API are:</p>
+<ul class="simple">
+<li><p>MPEG-1,</p></li>
+<li><p>MPEG-2,</p></li>
+<li><p>MPEG-4,</p></li>
+<li><p>VC-1 (Simple/Main/Advanced Profile),</p></li>
+<li><p>H.264 (AVCHD) Baseline/Main/High/High10 (exclude MBAFF)/High422 (exclude MBAFF) Profile,</p></li>
+<li><p>H.265 (HEVC) (Main/Main10/Main12 Profile, Main 4:2:2/4:4:4 10/12 profile (exclude YUV400)),</p></li>
+<li><p>VP8,</p></li>
+<li><p>VP9 (8-bit, 10-bit, and 12-bit),</p></li>
+<li><p>AV1 Main profile,</p></li>
+<li><p>Hybrid (CUDA + CPU) JPEG</p></li>
+</ul>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The Hybrid (CUDA + CPU) JPEG codec is not supported on Jetson platforms.</p>
+</div>
+<p>Refer to Chapter 2 for complete details about the video capabilities for various GPUs and Jetson platforms.</p>
+</section>
+</section>
+<span id="document-video-decoder-capabilities"></span><section id="video-decoder-capabilities">
+<h2><span class="section-number">2. </span>Video Decoder Capabilities<a class="headerlink" href="#video-decoder-capabilities" title="Link to this heading">#</a></h2>
+<p>This chapter provides detailed information about the video decoder capabilities for each GPU architecture and Jetson platform. <a class="reference internal" href="#nvdec-capabilities"><span class="std std-ref">NVDEC Capabilities</span></a> table specifies the maximum and minimum supported resolutions, supported profiles, and codec levels for H.264, HEVC, VP9, and AV1 to verify hardware support for required video formats and resolutions.</p>
+<p class="title sectiontitle rubric" id="mpeg-1-mpeg-2">MPEG-1 &amp; MPEG-2</p>
+<ul class="simple">
+<li><p>Max Resolution and Min Resolution supported on all GPUs is 4080x4080 and 48x16 respectively</p></li>
+</ul>
+<p class="title sectiontitle rubric" id="vc-1-mpeg-4">VC-1 &amp; MPEG-4</p>
+<ul class="simple">
+<li><p>Max Resolution and Min Resolution supported on all GPUs is 2048x1024 &amp; 1024x2048 and 48x16 respectively</p></li>
+</ul>
+<p class="title sectiontitle rubric" id="vp8">VP8</p>
+<ul class="simple">
+<li><p>Max Resolution and Min Resolution supported on all GPUs is 4096x4096 and 48x16 respectively</p></li>
+</ul>
+<table class="table-no-stripes compact longtable docutils align-default" id="nvdec-capabilities">
+<caption><span class="caption-text">NVDEC Capabilities</span><a class="headerlink" href="#nvdec-capabilities" title="Link to this table">#</a></caption>
+<colgroup>
+<col style="width: 20.0%" />
+<col style="width: 20.0%" />
+<col style="width: 20.0%" />
+<col style="width: 20.0%" />
+<col style="width: 20.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><div class="line-block">
+<div class="line">GPU Arch /</div>
+<div class="line">Jetson Platform</div>
+</div>
+</th>
+<th class="head"><div class="line-block">
+<div class="line">H.264/AVCHD</div>
+</div>
+</th>
+<th class="head"><div class="line-block">
+<div class="line">H.265/HEVC</div>
+</div>
+</th>
+<th class="head"><div class="line-block">
+<div class="line">VP9</div>
+</div>
+</th>
+<th class="head"><div class="line-block">
+<div class="line">AV1</div>
+</div>
+</th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><strong>Turing/GA100</strong></p></td>
+<td><p><strong>Max</strong>: 4096x4096</p></td>
+<td><p><strong>Max</strong>: 8192x8192</p></td>
+<td><p><strong>Max</strong>: 8192x8192<sup>1</sup></p></td>
+<td><p>Unsupported</p></td>
+</tr>
+<tr class="row-odd"><td></td>
+<td><p><strong>Min</strong>: 48x16</p></td>
+<td><p><strong>Min</strong>: 144x144</p></td>
+<td><p><strong>Min</strong>: 128x128</p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td></td>
+<td><p><strong>Profile:</strong> Baseline, Main, High profile up to Level 5.1</p></td>
+<td><p><strong>Profile:</strong> Main profile up to Level 6.0, main10 and main12 profile</p></td>
+<td><p><strong>Profile:</strong> Profile 0, 10-bit and 12-bit decoding</p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p><strong>Hopper</strong></p></td>
+<td><p><strong>Max</strong>: 4096x4096</p></td>
+<td><p><strong>Max</strong>: 8192x8192</p></td>
+<td><p><strong>Max</strong>: 8192x8192</p></td>
+<td><p>Unsupported</p></td>
+</tr>
+<tr class="row-odd"><td></td>
+<td><p><strong>Min</strong>: 48x16</p></td>
+<td><p><strong>Min</strong>: 144x144</p></td>
+<td><p><strong>Min</strong>: 128x128</p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td></td>
+<td><p><strong>Profile:</strong> Baseline, Main, High profile up to Level 5.1</p></td>
+<td><p><strong>Profile:</strong> Main, main10 and main12 profile up to Level 6.0, 444 chroma format support</p></td>
+<td><p><strong>Profile:</strong> Profile 0, 10-bit and 12-bit decoding</p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p><strong>GA10x/AD10x</strong></p></td>
+<td><p><strong>Max</strong>: 4096x4096</p></td>
+<td><p><strong>Max</strong>: 8192x8192</p></td>
+<td><p><strong>Max</strong>: 8192x8192</p></td>
+<td><p><strong>Max</strong>: 8192x8192</p></td>
+</tr>
+<tr class="row-odd"><td></td>
+<td><p><strong>Min</strong>: 48x16</p></td>
+<td><p><strong>Min</strong>: 144x144</p></td>
+<td><p><strong>Min</strong>: 128x128</p></td>
+<td><p><strong>Min</strong>: 128x128</p></td>
+</tr>
+<tr class="row-even"><td></td>
+<td><p><strong>Profile:</strong> Baseline, Main, High profile up to Level 5.1</p></td>
+<td><p><strong>Profile:</strong> Main, main10 and main12 profile up to Level 6.0, 444 chroma format support</p></td>
+<td><p><strong>Profile:</strong> Profile 0, 10-bit and 12-bit decoding</p></td>
+<td><p><strong>Profile:</strong> Profile 0 up to level 6.0</p></td>
+</tr>
+<tr class="row-odd"><td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><div class="line-block">
+<div class="line"><strong>Blackwell</strong> /</div>
+<div class="line"><strong>Jetson Thor</strong></div>
+</div>
+</td>
+<td><p><strong>Max</strong>: 8192x8192</p></td>
+<td><p><strong>Max</strong>: 8192x8192</p></td>
+<td><p><strong>Max</strong>: 8192x8192</p></td>
+<td><p><strong>Max</strong>: 8192x8192</p></td>
+</tr>
+<tr class="row-odd"><td></td>
+<td><p><strong>Min</strong>: 48x64</p></td>
+<td><p><strong>Min</strong>: 144x144</p></td>
+<td><p><strong>Min</strong>: 128x128</p></td>
+<td><p><strong>Min</strong>: 128x128</p></td>
+</tr>
+<tr class="row-even"><td></td>
+<td><p><strong>Profile:</strong> Baseline, Main, High up to Level 6.2 High 10 and High 422 (exclude MBAFF) up to Level 6.2</p></td>
+<td><p><strong>Profile:</strong> Main, main10, main12, Main 4:2:2/4:4:4 10/12 profile (exclude YUV400) Level up to 6.0</p></td>
+<td><p><strong>Profile:</strong> Profile 0, 10-bit and 12-bit decoding</p></td>
+<td><p><strong>Profile:</strong> Profile 0 up to level 6.0</p></td>
+</tr>
+</tbody>
+</table>
+<ul class="simple">
+<li><p><sup>1</sup>: VP9 10-bit and 12-bit decoding is supported on all Turing GPUs and GA100</p></li>
+<li><p><strong>Max</strong> in the table above refers to the maximum resolution supported by the hardware video decoder for the given GPU architecture or Jetson platform.</p></li>
+<li><p><strong>Min</strong> in the table above refers to the minimum resolution supported by the hardware video decoder for the given GPU architecture or Jetson platform.</p></li>
+</ul>
+</section>
+<span id="document-video-decoder-pipeline"></span><section id="video-decoder-pipeline">
+<h2><span class="section-number">3. </span>Video Decoder Pipeline<a class="headerlink" href="#video-decoder-pipeline" title="Link to this heading">#</a></h2>
+<p>This chapter describes the video decoder pipeline architecture and the workflow for decoding video using the NVDECODE API. It explains the decoder components and the sequence of API calls required for video decoding.</p>
+<p>Decoder pipeline consists of three major components - Demuxer, Video Parser, and Video Decoder. The components are not dependent on each other and hence can be used independently. NVDECODE API provides APIs for NVIDIA video parser and NVIDIA video decoder. Of these, NVIDIA video parser is purely a software component and users can implement their own parser in place of NVIDIA video parser, if required.</p>
+<figure class="align-center" id="video-decoder-pipeline-decode-pipeline">
+<a class="reference internal image-reference" href="_images/decode-pipeline.png"><img alt="_images/decode-pipeline.png" src="_images/decode-pipeline.png" style="width: 636px; height: 364px;" />
+</a>
+<figcaption>
+<p><span class="caption-text">Figure 1. Video decoder pipeline using NVDECODE API</span><a class="headerlink" href="#video-decoder-pipeline-decode-pipeline" title="Link to this image">#</a></p>
+</figcaption>
+</figure>
+<p>At a high level the following steps should be followed for decoding any video content using NVDECODEAPI:</p>
+<ol class="arabic simple">
+<li><p>Create a CUDA context.</p></li>
+<li><p>Query the decode capabilities of the hardware decoder.</p></li>
+<li><p>Create the decoder instance(s).</p></li>
+<li><p>De-Mux the content (like .mp4). This can be done using third party software like FFMPEG.</p></li>
+<li><p>Parse the video bitstream using parser provided by NVDECODE API or third-party parser such as FFmpeg.</p></li>
+<li><p>Kick off the Decoding using NVDECODE API.</p></li>
+<li><p>Obtain the decoded YUV for further processing.</p></li>
+<li><p>Query the status of the decoded frame.</p></li>
+<li><p>Depending on the decoding status, use the decoded output for further processing like rendering, inferencing, postprocessing etc.</p></li>
+<li><p>If the application needs to display the output,</p>
+<ul class="simple">
+<li><p>Convert decoded YUV surface to RGBA.</p></li>
+<li><p>Map RGBA surface to DirectX or OpenGL texture.</p></li>
+<li><p>Draw texture to screen.</p></li>
+</ul>
+</li>
+<li><p>Destroy the decoder instance(s) after the completion of decoding process.</p></li>
+<li><p>Destroy the CUDA context.</p></li>
+</ol>
+<p>The above steps are explained in the rest of the document and demonstrated in the sample application(s) included in the Video Codec SDK package.</p>
+</section>
+<span id="document-using-nvidia-video-decoder-nvdecode-api"></span><section id="using-nvidia-video-decoder-nvdecode-api">
+<h2><span class="section-number">4. </span>Using NVIDIA Video Decoder (NVDECODE API)<a class="headerlink" href="#using-nvidia-video-decoder-nvdecode-api" title="Link to this heading">#</a></h2>
+<p>All NVDECODE APIs are exposed in two header-files: <code class="docutils literal notranslate"><span class="pre">cuviddec.h</span></code> and <code class="docutils literal notranslate"><span class="pre">nvcuvid.h</span></code>. These headers can be found under <code class="docutils literal notranslate"><span class="pre">Interface</span></code> folder in the Video Codec SDK package. The samples in NVIDIA Video Codec SDK statically load the library (which ships as a part of the SDK package for windows) functions and include <code class="docutils literal notranslate"><span class="pre">cuviddec.h</span></code> and <code class="docutils literal notranslate"><span class="pre">nvcuvid.h</span></code> in the source files. The Windows DLL <code class="docutils literal notranslate"><span class="pre">nvcuvid.dll</span></code> is included in the NVIDIA display driver for Windows. The Linux library <code class="docutils literal notranslate"><span class="pre">libnvcuvid.so</span></code> is included with NVIDIA display driver for Linux. For Jetson platforms, the library <code class="docutils literal notranslate"><span class="pre">libnvcuvid.so</span></code> is included in the Jetson Linux.</p>
+<p>The following sections in this chapter explain the flow that should be followed to accelerate decoding using NVDECODE API.</p>
+<section id="video-parser">
+<h3><span class="section-number">4.1. </span>Video Parser<a class="headerlink" href="#video-parser" title="Link to this heading">#</a></h3>
+<section id="creating-a-parser">
+<h4><span class="section-number">4.1.1. </span>Creating a parser<a class="headerlink" href="#creating-a-parser" title="Link to this heading">#</a></h4>
+<p>Parser object can be created by calling <code class="docutils literal notranslate"><span class="pre">cuvidCreateVideoParser()</span></code> after filling the structure <code class="docutils literal notranslate"><span class="pre">CUVIDPARSERPARAMS</span></code>. The structure should be filled up with following information about the stream to be decoded:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">CodecType:</span></code>must be from <code class="docutils literal notranslate"><span class="pre">enum</span> <span class="pre">cudaVideoCodec</span></code>, indicating codec type of content like H.264, HEVC, VP9 etc.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ulMaxNumDecodeSurfaces:</span></code>This is number of surfaces in parser’s DPB (decode picture buffer). This value may not be known at the parser initialization time and can be set to a dummy number like 1 to create parser object. Application must register a callback <code class="docutils literal notranslate"><span class="pre">pfnSequenceCallback</span></code> with the driver, which is called by the parser when the parser encounters the first sequence header or any changes in the sequence. This callback reports the minimum number of surfaces needed by parser’s DPB for correct decoding in <code class="docutils literal notranslate"><span class="pre">CUVIDEOFORMAT::min_num_decode_surfaces</span></code>. The sequence callback may return this value to the parser if wants to update <code class="docutils literal notranslate"><span class="pre">CUVIDPARSERPARAMS::ulMaxNumDecodeSurfaces</span></code>. The parser then overwrites <code class="docutils literal notranslate"><span class="pre">CUVIDPARSERPARAMS::ulMaxNumDecodeSurfaces</span></code> with the value returned by the sequence callback, if return value of the sequence callback is greater than 1 (see description about <code class="docutils literal notranslate"><span class="pre">pfnSequenceCallback</span></code> below). Therefore, for optimum memory allocation, decoder object creation should be deferred until <code class="docutils literal notranslate"><span class="pre">CUVIDPARSERPARAMS::ulMaxNumDecodeSurfaces</span></code> is known, so that the decoder object can be created with required number of buffers, such that <code class="docutils literal notranslate"><span class="pre">CUVIDDECODECREATEINFO::ulNumDecodeSurfaces</span></code> = <code class="docutils literal notranslate"><span class="pre">CUVIDPARSERPARAMS::ulMaxNumDecodeSurfaces</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ulClockRate:</span></code>is timestamp units in Hz (0=default=10000000Hz)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ulErrorThreshold:</span></code>controls non-compliance bitstream checks in parser. Its valid range is 0 to 100. 0 means strict check and parser will return error if found any non-compliance or error and 100 means ignore all non-compliance bitstream checks in parser.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ulMaxDisplayDelay:</span></code>Max display callback delay. 0 = no delay</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">bAnnexb:</span></code>must be set to 1 for AV1 annexB streams</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">pfnSequenceCallback:</span></code>Application must register a function to handle any sequence change. Parser triggers this callback for initial sequence header or when it encounters a video format change. Return value from sequence callback is interpreted by the driver as follows:</p>
+<ul>
+<li><p>0: fail</p></li>
+<li><p>1: succeeded, but driver should not override <code class="docutils literal notranslate"><span class="pre">CUVIDPARSERPARAMS::ulMaxNumDecodeSurfaces</span></code></p></li>
+<li><p>&gt;1: succeeded, and driver should override <code class="docutils literal notranslate"><span class="pre">CUVIDPARSERPARAMS::ulMaxNumDecodeSurfaces</span></code> with this return value</p></li>
+</ul>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">pfnDecodePicture:</span></code>Parser triggers this callback when bitstream data for one frame is ready. In case of field pictures, there may be two decode calls per one display call since two fields make up one frame. Return value from this callback is interpreted as:</p>
+<ul>
+<li><p>0: fail</p></li>
+<li><p><span class="math notranslate nohighlight">\(\geq 1\)</span>: succeeded</p></li>
+</ul>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">pfnDisplayPicture</span></code>: Parser triggers this callback when a frame in display order is ready. Return value from this callback is interpreted as:</p>
+<ul>
+<li><p>0: fail</p></li>
+<li><p><span class="math notranslate nohighlight">\(\geq 1\)</span>: succeeded</p></li>
+</ul>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">pfnGetOperatingPoint</span></code>: Parser triggers this callback to get operating point of an AV1 scalable stream. Parser picks default operating point as 0 and outputAllLayers flag as 0 if <code class="docutils literal notranslate"><span class="pre">pfnGetOperatingPoint</span></code> is not set or return value is -1 or invalid operating point. Return value from this callback is interpreted as:</p>
+<ul>
+<li><p>&lt; 0: fail</p></li>
+<li><p><span class="math notranslate nohighlight">\(\geq 0\)</span>: succeeded (bit 0-9: currOperatingPoint, bit 10-10: bOutputAllLayer)</p></li>
+</ul>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">pfnGetSEIMsg</span></code>: Parser triggers this callback in decode order when all the unregistered user SEI messages or Metadata OBUs are parsed for a frame. Currently this callback is supported for H264, HEVC and AV1 codecs. Return value from this callback is interpreted as:</p>
+<ul>
+<li><p>0: fail</p></li>
+<li><p><span class="math notranslate nohighlight">\(\geq 1\)</span>: succeeded</p></li>
+</ul>
+</li>
+</ul>
+</section>
+<section id="parsing-the-packets">
+<h4><span class="section-number">4.1.2. </span>Parsing the packets<a class="headerlink" href="#parsing-the-packets" title="Link to this heading">#</a></h4>
+<p>Bitstream extracted from demultiplexer along with its length and some other auxiliary info like timestamp, flags is packed into struct <code class="docutils literal notranslate"><span class="pre">CUVIDSOURCEDATAPACKET</span></code>, called as packet. This packet is fed into parser using <code class="docutils literal notranslate"><span class="pre">cuvidParseVideoData()</span></code>. This packet is initialized as:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">flags:</span></code>These flags are set by application and interpreted by parser as below:</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">CUVID_PKT_ENDOFSTREAM:</span></code> MUST be set with last packet for this stream. Parser will trigger display callback for all pending buffers in the display queue.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">CUVID_PKT_TIMESTAMP:</span></code> indicate that timestamp in packet is valid.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">CUVID_PKT_DISCONTINUITY:</span></code>should be set if there is any discontinuity like packet after seek.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">CUVID_PKT_ENDOFPICTURE:</span></code> MUST be set when packet contains exactly one frame or one field data. NALU based codecs have one frame latency for decode callback as parser detects frame boundary when some non-VCL NALU are received (that belong to next frame). This flag will force parser to skip this boundary check and trigger decode callback immediately. If packet has incomplete data, decode callback will get triggered with partial frame data. If packet has more than one frame data, parser will trigger decode callback for first frame data. Rest of the NALU will get dropped.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">CUVID_PKT_NOTIFY_EOS:</span></code>If this flag is set along with CUVID_PKT_ENDOFSTREAM, an additional (dummy) display callback will be invoked with null value of CUVIDPARSERDISPINFO which should be interpreted as end of the stream.</p></li>
+</ul>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">payload_size:</span></code>represents number of bytes in payload</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">payload:</span></code>points to bitstream memory buffer</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">timestamp:</span></code>Presentation time stamp (10MHz clock), only valid if <code class="docutils literal notranslate"><span class="pre">CUVID_PKT_TIMESTAMP</span></code> flag is set</p></li>
+</ul>
+<p>Parser triggers callbacks registered while creating parser object synchronously from within <code class="docutils literal notranslate"><span class="pre">cuvidParseVideoData()</span></code>, whenever a corresponding condition is hit like <code class="docutils literal notranslate"><span class="pre">pfnSequenceCallback</span></code> when there is change in sequence parameters or <code class="docutils literal notranslate"><span class="pre">pfnDecodePicture</span></code> when frame is ready to be decoded. If the callback returns failure, it will be propagated by <code class="docutils literal notranslate"><span class="pre">cuvidParseVideoData()</span></code> to the application.</p>
+<p>The decoded result gets associated with a picture-index value in the <code class="docutils literal notranslate"><span class="pre">CUVIDPICPARAMS</span></code> structure, which is also provided by the parser. This picture index is later used to map the decoded frames to CUDA memory.</p>
+</section>
+<section id="destroying-parser">
+<h4><span class="section-number">4.1.3. </span>Destroying parser<a class="headerlink" href="#destroying-parser" title="Link to this heading">#</a></h4>
+<p>The user needs to call <code class="docutils literal notranslate"><span class="pre">cuvidDestroyVideoParser()</span></code> to destroy the parser object and free up all the allocated resources.</p>
+</section>
+</section>
+<section id="video-decoder">
+<h3><span class="section-number">4.2. </span>Video Decoder<a class="headerlink" href="#video-decoder" title="Link to this heading">#</a></h3>
+<section id="querying-decode-capabilities">
+<h4><span class="section-number">4.2.1. </span>Querying decode capabilities<a class="headerlink" href="#querying-decode-capabilities" title="Link to this heading">#</a></h4>
+<p>The API <code class="docutils literal notranslate"><span class="pre">cuvidGetDecoderCaps()</span></code> lets users query the capabilities of underlying hardware video decoder.</p>
+<p>As illustrated in <a class="reference internal" href="#nvdec-capabilities"><span class="std std-ref">NVDEC Capabilities</span></a>, different GPUs have hardware decoders with different capabilities. Therefore, to ensure your application works on all generations of GPU hardware, it is highly recommended that the application queries the hardware capabilities and makes appropriate decision based on presence/absence of the desired capability/functionality.</p>
+<p>The API <code class="docutils literal notranslate"><span class="pre">cuvidGetDecoderCaps()</span></code> lets users query the capabilities of underlying hardware video decoder. Calling thread should have a valid CUDA context associated.</p>
+<p>The client needs to fill in the following fields of <code class="docutils literal notranslate"><span class="pre">CUVIDDECODECAPS</span></code> before calling <code class="docutils literal notranslate"><span class="pre">cuvidGetDecoderCaps()</span></code>.</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">eCodecType</span></code>: Codec type (AV1, H.264, HEVC, VP9, JPEG etc.)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">eChromaFormat</span></code>: enum cudaVideoChromaFormat (Monochrome, 420, 422, 444)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">nBitDepthMinus8</span></code>: 0 for 8-bit, 2 for 10-bit, 4 for 12-bit</p></li>
+</ul>
+<p>When <code class="docutils literal notranslate"><span class="pre">cuvidGetDecoderCaps</span></code>() is called , the underlying driver fills up the remaining fields of <code class="docutils literal notranslate"><span class="pre">CUVIDDECODECAPS</span></code>, indicating the support for the queried capabilities, supported output formats and the maximum and minimum resolutions the hardware supports.</p>
+<p>The following pseudo-code illustrates how to query the capabilities of NVDEC.</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>CUVIDDECODECAPS decodeCaps = {};
+// set IN params for decodeCaps
+decodeCaps.eCodecType = cudaVideoCodec_HEVC;//HEVC
+decodeCaps.eChromaFormat = cudaVideoChromaFormat_420;//YUV 4:2:0
+decodeCaps.nBitDepthMinus8 = 2;// 10 bit
+result = cuvidGetDecoderCaps(&amp;decodeCaps);
+</pre></div>
+</div>
+<p>Returned parameters from API can be interpreted as below to validate if content can be decoded on underlying hardware:</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>// Check if content is supported
+if (!decodecaps.bIsSupported){
+        NVDEC_THROW_ERROR(&quot;Codec not supported on this GPU&quot;, CUDA_ERROR_NOT_SUPPORTED);
+}
+// validate the content resolution supported on underlying hardware
+if ((coded_width &gt; decodecaps.nMaxWidth) ||
+        (coded_height &gt; decodecaps.nMaxHeight)){
+        NVDEC_THROW_ERROR(&quot;Resolution not supported on this GPU&quot;, CUDA_ERROR_NOT_SUPPORTED);
+}
+// Max supported macroblock count CodedWidth*CodedHeight/256 must be &lt;= nMaxMBCount
+if ((coded_width&gt;&gt;4)*(coded_height&gt;&gt;4) &gt; decodecaps.nMaxMBCount){
+       NVDEC_THROW_ERROR(&quot;MBCount not supported on this GPU&quot;,
+CUDA_ERROR_NOT_SUPPORTED);
+}
+</pre></div>
+</div>
+<p>In most situations, bit-depth and chroma subsampling to be used at the decoder output is same as that at the decoder input (i.e. in the content). In certain cases, however, it may be necessary to have the decoder produce output with bit-depth and chroma subsampling different from that used in the input bitstream. In general, it’s always a good idea to first check if the desired output bit-depth and chroma subsampling format is supported before creating the decoder. This can be done in the following way:</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>// Check supported output format
+if (decodecaps.nOutputFormatMask &amp; (1&lt;&lt;cudaVideoSurfaceFormat_NV12)){
+        // Decoder supports output surface format NV12
+}
+if (decodecaps.nOutputFormatMask &amp; (1&lt;&lt;cudaVideoSurfaceFormat_P016)){
+        // Decoder supports output surface format P010
+}
+……
+</pre></div>
+</div>
+<p>The API <code class="docutils literal notranslate"><span class="pre">cuvidGetDecoderCaps()</span></code> also returns histogram related capabilities of underlying GPU. Histogram data is collected by NVDEC during the decoding process resulting in zero performance penalty. NVDEC computes the histogram data for only the luma component of decoded output, not on post-processed frame(i.e. when scaling, cropping, etc. applied). In case of AV1 when film grain is enabled, histogram data is collected on the decoded frame prior to the application of the film grain.</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>// Check if histogram is supported
+if (decodecaps.bIsHistogramSupported){
+        nCounterBitDepth = decodecaps.nCounterBitDepth; // histogram counter bit depth
+        nMaxHistogramBins = decodecaps.nMaxHistogramBins; // Max number of histogram bins
+}
+……
+</pre></div>
+</div>
+<p>Histogram data is calculated as : <code class="docutils literal notranslate"><span class="pre">Histogram_Bin[pixel_value</span> <span class="pre">&gt;&gt;</span> <span class="pre">(pixel_bitDepth</span> <span class="pre">-</span> <span class="pre">log2(nMaxHistogramBins))]++;</span></code></p>
+</section>
+<section id="creating-a-decoder">
+<h4><span class="section-number">4.2.2. </span>Creating a Decoder<a class="headerlink" href="#creating-a-decoder" title="Link to this heading">#</a></h4>
+<p>Before creating the decoder instance, user needs to have a valid CUDA context which will be used in the entire decoding process.</p>
+<p>The decoder instance can be created by calling <code class="docutils literal notranslate"><span class="pre">cuvidCreateDecoder()</span></code> after filling the structure <code class="docutils literal notranslate"><span class="pre">CUVIDDECODECREATEINFO</span></code>. The structure <code class="docutils literal notranslate"><span class="pre">CUVIDDECODECREATEINFO</span></code> should be filled up with the following information about the stream to be decoded:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">CodecType:</span></code>must be from <code class="docutils literal notranslate"><span class="pre">enum</span> <span class="pre">cudaVideoCodec</span></code>. It represents codec type of content like H.264, HEVC, VP9 etc.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ulWidth,</span> <span class="pre">ulHeight</span></code>: coded width and coded height in pixels.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ulMaxWidth,</span> <span class="pre">ulMaxHeight</span></code>: max width and max height that decoder support in case of resolution change. When there is resolution change (new resolution &lt;= ulMaxWidth, ulMaxHeight) in video stream, app can reconfigure decoder using cuvidReconfigureDecoder() API instead of destroy and recreate the decoder. If ulMaxWidth or ulMaxHeight is set to 0, ulMaxWidth and ulMaxHeight are set to ulWidth and ulHeight respectively.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ChromaFormat:</span></code> must be from <code class="docutils literal notranslate"><span class="pre">enum</span> <span class="pre">cudaVideoChromaFormat</span></code>. It represents chroma format of content like 4:2:0, 4:4:4, etc.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">bitDepthMinus8</span></code>: bit-depth minus 8 of video stream to be decoded like 0 for 8-bit, 2 for 10-bit, 4 for 12-bit.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ulNumDecodeSurfaces:</span></code> Referred to as decode surfaces elsewhere in this document, this is the number of surfaces that the driver will internally allocate for storing the decoded frames. Using a higher number ensures better pipelining but increases GPU memory consumption. For correct operation, minimum value is defined in <code class="docutils literal notranslate"><span class="pre">CUVIDEOFORMAT::min_num_decode_surfaces</span></code> and can be obtained from first sequence callback from NVIDIA parser. The NVDEC engine writes decoded data to one of these surfaces. These surfaces are not accessible by the user of NVDECODE API, but the <em>mapping</em> stage, which includes decoder output format conversion, scaling, cropping etc.) use these surfaces as input surfaces.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ulNumOutputSurfaces:</span></code> This is the maximum number of output surfaces that the client will simultaneously <em>map</em> to decode surfaces for further processing using <code class="docutils literal notranslate"><span class="pre">cuvidMapVideoFrame().</span></code> These surfaces have postprocessed decoded output to be used by client. The driver internally allocates the corresponding number of surfaces (referred as output surfaces in this document). Client will have access to output surfaces. Refer to section <a class="reference internal" href="#preparing-the-decoded-frame-for-further-processing"><span class="std std-ref">Preparing the decoded frame for further processing</span></a> to understand the definition of <em>map</em>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">OutputFormat</span></code>: Output surface format defined as <code class="docutils literal notranslate"><span class="pre">enum</span> <span class="pre">cudaVideoSurfaceFormat.</span></code> This output format must be one of supported format obtained in <code class="docutils literal notranslate"><span class="pre">decodecaps.nOutputFormatMask</span></code>in <code class="docutils literal notranslate"><span class="pre">cuvidGetDecoderCaps().</span></code>If an unsupported output format is passed, API will fail with error <code class="docutils literal notranslate"><span class="pre">CUDA_ERROR_NOT_SUPPORTED.</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ulTargetWidth,</span> <span class="pre">ulTargetHeight:</span></code>This is resolution of output surfaces. For use-case which involve no scaling, these should be set to<code class="docutils literal notranslate"><span class="pre">ulWidth,</span> <span class="pre">ulHeight</span></code>, respectively.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">DeinterlaceMode</span></code>: This should be set to<code class="docutils literal notranslate"><span class="pre">cudaVideoDeinterlaceMode_Weave</span></code>or <code class="docutils literal notranslate"><span class="pre">cudaVideoDeinterlaceMode_Bob</span></code> for progressive content and <code class="docutils literal notranslate"><span class="pre">cudaVideoDeinterlaceMode_Adaptive</span></code> for interlaced content. <code class="docutils literal notranslate"><span class="pre">cudaVideoDeinterlaceMode_Adaptive</span></code>yields better quality but increases memory consumption.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ulCreationFlags</span></code>: It is defined as <code class="docutils literal notranslate"><span class="pre">enum</span> <span class="pre">cudaVideoCreateFlags</span></code>. It is optional to explicitly define this flag. Driver will pick appropriate mode if not defined.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ulIntraDecodeOnly:</span></code>Set this flag to 1 to instruct the driver that the content being decoded contains only I/IDR frames. This helps the driver optimize memory consumption. Do not set this flag if content has non-intra frames.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">enableHistogram:</span></code>Set this flag to 1 to enable histogram data collection.</p></li>
+</ul>
+<p>The <code class="docutils literal notranslate"><span class="pre">cuvidCreateDecoder()</span></code>call fills <code class="docutils literal notranslate"><span class="pre">CUvideodecoder</span></code>with the decoder handle which should be retained till the decode session is active. The handle needs to be passed along with other NVDECODE API calls.</p>
+<p>The user can also specify the following parameters in the <code class="docutils literal notranslate"><span class="pre">CUVIDDECODECREATEINFO</span></code>to control the final output:</p>
+<ul class="simple">
+<li><p>Scaling dimension</p></li>
+<li><p>Cropping dimension</p></li>
+<li><p>Dimension if the user wants to change the aspect ratio</p></li>
+</ul>
+<p>The following code demonstrates the setup of decoder in case of scaling, cropping, or aspect ratio conversion.</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>// Scaling. Source size is 1280x960. Scale to 1920x1080.
+CUresult rResult;
+unsigned int uScaleW, uScaleH;
+uScaleW = 1920;
+uScaleH = 1080;
+...
+CUVIDDECODECREATEINFO stDecodeCreateInfo;
+memset(&amp;stDecodeCreateInfo, 0, sizeof(CUVIDDECODECREATEINFO));
+... // Setup the remaining structure members
+stDecodeCreateInfo.ulTargetWidth  = uScaleW;
+stDecodeCreateInfo.ulTargetHeight = uScaleH;
+rResult = cuvidCreateDecoder(&amp;hDecoder, &amp;stDecodeCreateInfo);
+...
+</pre></div>
+</div>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>// Cropping. Source size is 1280x960
+CUresult rResult;
+unsigned int uCropL, uCropR, uCropT, uCropB;
+uCropL = 30;
+uCropR = 700;
+uCropT = 20;
+uCropB = 500;
+...
+CUVIDDECODECREATEINFO stDecodeCreateInfo;
+memset(&amp;stDecodeCreateInfo, 0, sizeof(CUVIDDECODECREATEINFO));
+// Setup the remaining structure members
+...
+stDecodeCreateInfo.display_area.left  = uCropL;
+stDecodeCreateInfo.display_area.right = uCropR;
+stDecodeCreateInfo.display_area.top   = uCropT;
+stDecodeCreateInfo.display_area.bottom = uCropB;
+rResult = cuvidCreateDecoder(&amp;hDecoder, &amp;stDecodeCreateInfo);
+...
+</pre></div>
+</div>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>// Aspect Ratio Conversion. Source size is 1280x960(4:3). Convert to
+// 16:9
+CUresult rResult;
+unsigned int uDispAR_L, uDispAR_R, uDispAR_T, uDispAR_B;
+uDispAR_L = 0;
+uDispAR_R = 1280;
+uDispAR_T = 70;
+uDispAR_B = 790;
+...
+CUVIDDECODECREATEINFO stDecodeCreateInfo;
+memset(&amp;stDecodeCreateInfo, 0, sizeof(CUVIDDECODECREATEINFO));
+... // setup structure members
+stDecodeCreateInfo.target_rect.left   = uDispAR_L;
+stDecodeCreateInfo.target_rect.right  = uDispAR_R;
+stDecodeCreateInfo.target_rect.top    = uDispAR_T;
+stDecodeCreateInfo.target_rect.bottom = uDispAR_B;
+rResult = cuvidCreateDecoder(&amp;hDecoder, &amp;stDecodeCreateInfo);
+...
+</pre></div>
+</div>
+</section>
+<section id="decoding-the-frame-field">
+<h4><span class="section-number">4.2.3. </span>Decoding the frame/field<a class="headerlink" href="#decoding-the-frame-field" title="Link to this heading">#</a></h4>
+<p>After de-muxing and parsing, the client can submit the bitstream which contains a frame or field of data to hardware for decoding. To accomplish this, the following steps need to be followed:</p>
+<ul class="simple">
+<li><p>Fill up the <code class="docutils literal notranslate"><span class="pre">CUVIDPICPARAMS</span></code> structure.</p>
+<ul>
+<li><p>The client needs to fill up the structure with parameters derived during the parsing process. <code class="docutils literal notranslate"><span class="pre">CUVIDPICPARAMS</span></code> contains a structure specific to every supported codec which should also be filled up.</p></li>
+</ul>
+</li>
+<li><p>Call <code class="docutils literal notranslate"><span class="pre">cuvidDecodePicture()</span></code> and pass the decoder handle and the pointer to CUVIDPICPARAMS. <code class="docutils literal notranslate"><span class="pre">cuvidDecodePicture()</span></code> kicks off the decoding on NVDEC.</p></li>
+</ul>
+</section>
+<section id="preparing-the-decoded-frame-for-further-processing">
+<span id="id1"></span><h4><span class="section-number">4.2.4. </span>Preparing the decoded frame for further processing<a class="headerlink" href="#preparing-the-decoded-frame-for-further-processing" title="Link to this heading">#</a></h4>
+<p>The user needs to call <code class="docutils literal notranslate"><span class="pre">cuvidMapVideoFrame()</span></code> to get the CUDA device pointer and pitch of the output surface that holds the decoded and post-processed frame.</p>
+<p>Please note that <code class="docutils literal notranslate"><span class="pre">cuvidDecodePicture()</span></code> instructs the NVDEC hardware engine to kick off the decoding of the frame/field. However, successful completion of <code class="docutils literal notranslate"><span class="pre">cuvidMapVideoFrame()</span></code> indicates that the decoding process is completed and that the decoded YUV frame is converted from the format generated by NVDEC to the YUV format specified in <code class="docutils literal notranslate"><span class="pre">CUVIDDECODECREATEINFO::OutputFormat</span></code>.</p>
+<p><code class="docutils literal notranslate"><span class="pre">cuvidMapVideoFrame()</span></code> API takes decode surface index (<code class="docutils literal notranslate"><span class="pre">nPicIdx</span></code>) as input and <em>maps</em> it to one of available output surfaces, post-processes the decoded frame and copy to output surface and returns CUDA device pointer and associated pitch of the output surfaces.</p>
+<p>The above operation performed by <code class="docutils literal notranslate"><span class="pre">cuvidMapVideoFrame()</span></code> is referred to as <em>mapping</em> in this document.</p>
+<p>After the user is done with the processing on the frame, <code class="docutils literal notranslate"><span class="pre">cuvidUnmapVideoFrame()</span></code> must be called to make the output surface available for storing other decoded and post-processed frames.</p>
+<p>If the user continuously fails to call the corresponding <code class="docutils literal notranslate"><span class="pre">cuvidUnmapVideoFrame()</span></code> after <code class="docutils literal notranslate"><span class="pre">cuvidMapVideoFrame()</span></code>, then <code class="docutils literal notranslate"><span class="pre">cuvidMapVideoFrame()</span></code> will eventually fail. At most <code class="docutils literal notranslate"><span class="pre">CUVIDDECODECREATEINFO::ulNumOutputSurfaces</span></code> frames can be mapped at a time.</p>
+<p><code class="docutils literal notranslate"><span class="pre">cuvidMapVideoFrame()</span></code> is a blocking call as it waits for decoding to complete. If <code class="docutils literal notranslate"><span class="pre">cuvidMapVideoFrame()</span></code> is called on same CPU thread as <code class="docutils literal notranslate"><span class="pre">cuvidDecodePicture()</span></code>, it will block <code class="docutils literal notranslate"><span class="pre">cuvidDecodePicture()</span></code> as well. In this case, the application will not be able to submit decode packets to NVDEC until mapping is complete. It can be avoided by performing the mapping operation on a CPU thread (referred as mapping thread) different from the one calling <code class="docutils literal notranslate"><span class="pre">cuvidDecodePicture()</span></code> (referred as decoding thread).</p>
+<p>When using NVIDIA parser from NVDECODE API, the application can implement a producer-consumer queue between decoding thread (as producer) and mapping thread (as consumer). The queue can contain picture indexes (or other unique identifiers) for frames being decoded. Parser can run on decoding thread. Decoding thread can add the picture index to the queue in display callback and return immediately from callback to continue decoding subsequent frames as they become available. On the other side, mapping thread will monitor the queue. If it sees the queue has non-zero length, it will dequeue the entry and call <code class="docutils literal notranslate"><span class="pre">cuvidMapVideoFrame(…)</span></code> with <code class="docutils literal notranslate"><span class="pre">nPicIdx</span></code> as the picture index. Decoding thread must ensure to not reuse the corresponding decode picture buffer for storing the decoded output until its entry is consumed and freed by mapping thread.</p>
+<p>The following code demonstrates how to use <code class="docutils literal notranslate"><span class="pre">cuvidMapVideoFrame()</span></code> and <code class="docutils literal notranslate"><span class="pre">cuvidUnmapVideoFrame()</span></code>.</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>// MapFrame: Call cuvidMapVideoFrame and get the devptr and associated
+// pitch. Copy this surface (in device memory) to host memory using
+// CUDA device to host memcpy.
+bool MapFrame()
+{
+    CUVIDPARSEDISPINFO stDispInfo;
+    CUVIDPROCPARAMS stProcParams;
+    CUresult rResult;
+    unsigned long long cuDevPtr = 0;
+    int nPitch, nPicIdx, frameSize;
+    unsigned char* pHostPtr = nullptr;
+    memset(&amp;stDispInfo, 0, sizeof(CUVIDPARSEDISPINFO));
+    memset(&amp;stProcParams, 0, sizeof(CUVIDPROCPARAMS));
+    /*************************************************
+    *   setup stProcParams
+    **************************************************/
+    // retrieve the frames from the Frame Display Queue. This Queue is
+    // is populated in HandlePictureDisplay.
+    if (g_pFrameQueue-&gt;dequeue(&amp;stDispInfo))
+    {
+        nPicIdx = stDispInfo.picture_index;
+        rResult = cuvidMapVideoFrame(hDecoder, nPicIdx, &amp;cuDevPtr,
+                                     &amp;nPitch, &amp;stProcParams);
+        frameSize = (ChromaFormat == cudaVideoChromaFormat_444) ? nPitch * (3*nheight) :
+                    nPitch * (nheight + (nheight + 1) / 2);
+        // use CUDA based Device to Host memcpy
+        rResult = cuMemAllocHost((void** )&amp;pHostPtr, frameSize);
+        if (pHostPtr)
+        {
+            rResult = cuMemcpyDtoH(pHostPtr, cuDevPtr, frameSize);
+        }
+        rResult = cuvidUnmapVideoFrame(hDecoder, cuDevPtr);
+    }
+    ... // Dump YUV to a file
+    if (pHostPtr)
+    {
+        cuMemFreeHost(pHostPtr);
+    }
+    ...
+}
+</pre></div>
+</div>
+<p>In multi-instance decoding use-case, NVDEC could be a bottleneck so there wouldn’t be significant benefit of calling <code class="docutils literal notranslate"><span class="pre">cuvidMapVideoFrame()</span></code> and <code class="docutils literal notranslate"><span class="pre">cuvidDecodePicture()</span></code> on different CPU threads. <code class="docutils literal notranslate"><span class="pre">cuvidDecodePicture()</span></code> will stall if wait queue on NVDEC inside driver is full. Sample applications in Video Codec SDK are using <em>mapping</em> and <em>decode</em> calls on same CPU thread, for simplicity.</p>
+</section>
+<section id="getting-histogram-data-buffer">
+<h4><span class="section-number">4.2.5. </span>Getting histogram data buffer<a class="headerlink" href="#getting-histogram-data-buffer" title="Link to this heading">#</a></h4>
+<p>Histogram data is collected by NVDEC during the decoding process resulting in zero performance penalty. NVDEC computes the histogram data for only the luma component of decoded output, not on post-processed frame(i.e. when scaling, cropping, etc. applied). In case of AV1 when film grain is enabled, histogram data is collected on the decoded frame prior to the application of the film grain.</p>
+<p><code class="docutils literal notranslate"><span class="pre">cuvidMapVideoFrame()</span></code> API returns the CUDA device pointer of histogram data buffer along with output surface if <code class="docutils literal notranslate"><span class="pre">CUVIDDECODECREATEINFO::enableHistogram</span></code> flag is set while creating decoder (using API <code class="docutils literal notranslate"><span class="pre">cuvidCreateDecoder()</span></code>). CUDA device pointer of histogram buffer can be obtained from <code class="docutils literal notranslate"><span class="pre">CUVIDPROCPARAMS::histogram_dptr</span></code>.</p>
+<p>Histogram buffer is mapped to output buffer in driver so <code class="docutils literal notranslate"><span class="pre">cuvidUnmapVideoFrame()</span></code> does unmap of histogram buffer also along with output surface.</p>
+<p>The following code demonstrates how to use <code class="docutils literal notranslate"><span class="pre">cuvidMapVideoFrame()</span></code> and <code class="docutils literal notranslate"><span class="pre">cuvidUnmapVideoFrame()</span></code> for accessing histogram buffer.</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>// MapFrame: Call cuvidMapVideoFrame and get the output frame and associated
+// histogram buffer CUDA device pointer
+
+    CUVIDPROCPARAMS stProcParams;
+    CUresult rResult;
+    unsigned long long cuOutputFramePtr = 0, cuHistogramPtr = 0;
+    int nPitch;
+    int histogram_size = (decodecaps.nCounterBitDepth / 8) *
+                            decodecaps.nMaxHistogramBins;
+    unsigned char *pHistogramPtr = nullptr;
+
+    memset(&amp;stProcParams, 0, sizeof(CUVIDPROCPARAMS));
+    /*************************************************
+    *   setup stProcParams
+    **************************************************/
+    stProcParams.histogram_dptr = &amp;cuHistogramPtr;
+
+    rResult = cuvidMapVideoFrame(hDecoder, nPicIdx, &amp;cuOutputFramePtr,
+                                 &amp;nPitch, &amp;stProcParams);
+    // allocate histogram buffer for cuMemcpy
+    rResult = cuMemAllocHost((void** )&amp;pHistogramPtr, histogram_size);
+    if (pHistogramPtr)
+    {
+        rResult = cuMemcpyDtoH(pHistogramPtr, cuHistogramPtr, histogram_size);
+    }
+    // unmap output frame
+    rResult = cuvidUnmapVideoFrame(hDecoder, cuOutputFramePtr);
+    ...
+}
+</pre></div>
+</div>
+</section>
+<section id="querying-the-decoding-status">
+<h4><span class="section-number">4.2.6. </span>Querying the decoding status<a class="headerlink" href="#querying-the-decoding-status" title="Link to this heading">#</a></h4>
+<p>After the decoding is kicked off, <code class="docutils literal notranslate"><span class="pre">cuvidGetDecodeStatus()</span></code> can be called at any time to query the status of decoding of that frame. The underlying driver fills the status of decoding in <code class="docutils literal notranslate"><span class="pre">CUVIDGETDECODESTATUS::decodeStatus</span></code>.</p>
+<p>The NVDECODEAPI currently reports the following statuses:</p>
+<ul class="simple">
+<li><p>Decoding is in progress.</p></li>
+<li><p>Decoding of the frame completed successfully.</p></li>
+<li><p>The bitstream for the frame was corrupted and concealed by NVDEC.</p></li>
+<li><p>The bitstream for the frame was corrupted, however could not be concealed by NVDEC.</p></li>
+</ul>
+<p>The API is expected to help in the scenarios where the client needs to take a further decision based on the decoding status of the frame, for e.g. whether to carry out inferencing on the frame or not.</p>
+<p>Please note that the NVDEC can detect a limited number of errors depending on the codec. This API is supported for HEVC, H264 and JPEG on Turing and above generation GPUs.</p>
+</section>
+<section id="reconfiguring-the-decoder">
+<h4><span class="section-number">4.2.7. </span>Reconfiguring the decoder<a class="headerlink" href="#reconfiguring-the-decoder" title="Link to this heading">#</a></h4>
+<p>Using <code class="docutils literal notranslate"><span class="pre">cuvidReconfigureDecoder()</span></code> the user can reconfigure the decoder if there is a change in the resolution and/or post processing parameters of the bitstream without having to destroy the ongoing decoder instance, and create a new one thereby saving time (and latency) in the process.</p>
+<p>In the earlier SDKs the user had to destroy the existing decoder instance and create a new decoder instance for handling any change in decoder resolution or post processing parameters (like scaling ratio, cropping dimensions etc.).</p>
+<p>The API can be used in scenarios where the bitstream undergoes changes in resolution, for e.g. when the encoder (on server side) changes image resolution frequently to adhere to Quality of Service(QoS) constraints.</p>
+<p>The following steps need to be followed for using the <code class="docutils literal notranslate"><span class="pre">cuvidReconfigureDecoder()</span></code>.</p>
+<ol class="arabic simple">
+<li><p>The user needs to specify <code class="docutils literal notranslate"><span class="pre">CUVIDDECODECREATEINFO::ulMaxWidth</span></code> and <code class="docutils literal notranslate"><span class="pre">CUVIDDECODECREATEINFO::ulMaxHeight</span></code> while calling <code class="docutils literal notranslate"><span class="pre">cuvidCreateDecoder()</span></code>. The user should choose the values of <code class="docutils literal notranslate"><span class="pre">CUVIDDECODECREATEINFO::ulMaxWidth</span></code> and <code class="docutils literal notranslate"><span class="pre">CUVIDDECODECREATEINFO::ulMaxHeight</span></code> which to ensure that the resolution of the bitstream is never exceeded during the entire decoding process. Please note that the values of <code class="docutils literal notranslate"><span class="pre">CUVIDDECODECREATEINFO::ulMaxWidth</span></code> and <code class="docutils literal notranslate"><span class="pre">CUVIDDECODECREATEINFO::ulMaxHeight</span></code>cannot be changed within a session and if user wants to change the values, the decoding session should be destroyed and recreated.</p></li>
+<li><p>During the process of decoding, when the user needs to change the bitstream or change postprocessing parameters, the user needs to call <code class="docutils literal notranslate"><span class="pre">cuvidReconfigureDecoder()</span></code>. This call should be ideally made from <code class="docutils literal notranslate"><span class="pre">CUVIDPARSERPARAMS::pfnSequenceCallback</span></code> when the bitstream changes. The parameters the user wants to reconfigure should be filled up in <code class="docutils literal notranslate"><span class="pre">::CUVIDRECONFIGUREDECODERINFO</span></code>. Please note, <code class="docutils literal notranslate"><span class="pre">CUVIDRECONFIGUREDECODERINFO::ulWidth</span></code> and <code class="docutils literal notranslate"><span class="pre">CUVIDRECONFIGUREDECODERINFO::ulHeight</span></code> must be equal to or smaller than <code class="docutils literal notranslate"><span class="pre">CUVIDDECODECREATEINFO::ulMaxWidth</span></code> and <code class="docutils literal notranslate"><span class="pre">CUVIDDECODECREATEINFO::ulMaxHeight</span></code> respectively or else the <code class="docutils literal notranslate"><span class="pre">cuvidReconfigureDecoder()</span></code>would fail.</p></li>
+</ol>
+<p>The API is supported for all codecs supported by NVDECODEAPI.</p>
+</section>
+<section id="destroying-the-decoder">
+<h4><span class="section-number">4.2.8. </span>Destroying the decoder<a class="headerlink" href="#destroying-the-decoder" title="Link to this heading">#</a></h4>
+<p>The user needs to call <code class="docutils literal notranslate"><span class="pre">cuvidDestroyDecoder()</span></code> to destroy the decoder session and free up all the allocated decoder resources.</p>
+</section>
+</section>
+<section id="run-time-dynamic-linking-of-nvidia-libraries">
+<h3><span class="section-number">4.3. </span>Run-time dynamic linking of NVIDIA libraries<a class="headerlink" href="#run-time-dynamic-linking-of-nvidia-libraries" title="Link to this heading">#</a></h3>
+<p>Video Codec SDK sample applications are using two main NVIDIA libraries: nvcuvid and cuda. Both libraries can be used as either load-time dynamic linking or run-time dynamic linking. Video Codec SDK sample applications are using load-time dynamic linking. User can use run-time dynamic linking of these libraries if needed. Below code snippets can help understand the changes needed in programming style:</p>
+<section id="run-time-dynamic-linking">
+<h4><span class="section-number">4.3.1. </span>Run-time dynamic linking<a class="headerlink" href="#run-time-dynamic-linking" title="Link to this heading">#</a></h4>
+<p>In case of run-time dynamic linking, library is loaded to memory at run-time. Below is code snippet to dynamically load nvcuvid library at run-time on Windows and Linux systems:</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>#if defined(WIN32) || defined(_WIN32) || defined(WIN64) || defined(_WIN64)
+#include &lt;Windows.h&gt;
+
+#ifdef UNICODE
+   static LPCWSTR __DriverLibName = L&quot;nvcuvid.dll&quot;;
+#else
+   static LPCSTR __DriverLibName = &quot;nvcuvid.dll&quot;;
+#endif
+
+typedef HMODULE DLLDRIVER;
+
+static CUresult LOAD_LIBRARY(DLLDRIVER *pInstance)
+{
+    *pInstance = LoadLibrary(__DriverLibName);
+
+    if (*pInstance == NULL)
+    {
+        printf(&quot;LoadLibrary \&quot;%s\&quot; failed!\n&quot;, __DriverLibName);
+        return CUDA_ERROR_UNKNOWN;
+    }
+
+    return CUDA_SUCCESS;
+}
+
+#elif defined(__unix__) || defined(__APPLE__) || defined(__MACOSX)
+
+#include &lt;dlfcn.h&gt;
+
+static char __DriverLibName[] = &quot;libnvcuvid.so&quot;;
+
+typedef void *DLLDRIVER;
+
+static CUresult LOAD_LIBRARY(DLLDRIVER *pInstance)
+{
+    *pInstance = dlopen(__DriverLibName, RTLD_NOW);
+
+    if (*pInstance == NULL)
+    {
+        printf(&quot;dlopen \&quot;%s\&quot; failed!\n&quot;, __DriverLibName);
+        return CUDA_ERROR_UNKNOWN;
+    }
+
+    return CUDA_SUCCESS;
+}
+#endif
+</pre></div>
+</div>
+</section>
+<section id="getting-function-pointers">
+<h4><span class="section-number">4.3.2. </span>Getting function pointers<a class="headerlink" href="#getting-function-pointers" title="Link to this heading">#</a></h4>
+<p>Function pointers can be fetched using <code class="docutils literal notranslate"><span class="pre">GetProcAddress()</span></code> on Windows and <code class="docutils literal notranslate"><span class="pre">dlsym()</span></code> on Linux:</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>typedef CUresult CUDAAPI tcuvidCreateVideoParser(CUvideoparser *pObj, CUVIDPARSERPARAMS *pParams);
+typedef CUresult CUDAAPI tcuvidParseVideoData(CUvideoparser obj, CUVIDSOURCEDATAPACKET *pPacket);
+typedef CUresult CUDAAPI tcuvidDestroyVideoParser(CUvideoparser obj);
+
+typedef CUresult CUDAAPI tcuvidGetDecoderCaps(CUVIDDECODECAPS *pdc);
+typedef CUresult CUDAAPI tcuvidCreateDecoder(CUvideodecoder *phDecoder, CUVIDDECODECREATEINFO *pdci);
+typedef CUresult CUDAAPI tcuvidDestroyDecoder(CUvideodecoder hDecoder);
+typedef CUresult CUDAAPI tcuvidDecodePicture(CUvideodecoder hDecoder, CUVIDPICPARAMS *pPicParams);
+
+tcuvidCreateVideoParser               *cuvidCreateVideoParser;
+tcuvidParseVideoData                  *cuvidParseVideoData;
+tcuvidDestroyVideoParser              *cuvidDestroyVideoParser;
+
+tcuvidGetDecoderCaps                  *cuvidGetDecoderCaps;
+tcuvidCreateDecoder                   *cuvidCreateDecoder;
+tcuvidDestroyDecoder                  *cuvidDestroyDecoder;
+tcuvidDecodePicture                   *cuvidDecodePicture;
+
+#if defined(WIN32) || defined(_WIN32) || defined(WIN64) || defined(_WIN64)
+#define GET_PROC_EX(name, alias, required)                     \
+    alias = (t##name *)GetProcAddress(DriverLib, #name);               \
+    if (alias == NULL &amp;&amp; required) {                                    \
+        printf(&quot;Failed to find required function \&quot;%s\&quot; in %s\n&quot;,       \
+               #name, __DriverLibName);                                  \
+        return CUDA_ERROR_UNKNOWN;                                      \
+    }
+
+#elif defined(__unix__) || defined(__APPLE__) || defined(__MACOSX)
+#define GET_PROC_EX(name, alias, required)                              \
+    alias = (t##name *)dlsym(DriverLib, #name);                        \
+    if (alias == NULL &amp;&amp; required) {                                    \
+        printf(&quot;Failed to find required function \&quot;%s\&quot; in %s\n&quot;,       \
+               #name, __DriverLibName);                                  \
+        return CUDA_ERROR_UNKNOWN;                                      \
+    }
+#endif
+
+
+#define GET_PROC_REQUIRED(name) GET_PROC_EX(name,name,1)
+#define GET_PROC_OPTIONAL(name) GET_PROC_EX(name,name,0)
+#define GET_PROC(name)          GET_PROC_REQUIRED(name)
+
+#define CHECKED_CALL(call)              \
+    do {                                \
+        CUresult result = (call);       \
+        if (CUDA_SUCCESS != result) {   \
+            return result;              \
+        }                               \
+    } while(0)
+
+CUresult CUDAAPI cuvidInit(unsigned int Flags)
+{
+    DLLDRIVER DriverLib;
+
+    CHECKED_CALL(LOAD_LIBRARY(&amp;DriverLib));
+
+    // fetch all function pointers
+    GET_PROC(cuvidCreateVideoParser);
+    GET_PROC(cuvidParseVideoData);
+    GET_PROC(cuvidDestroyVideoParser);
+
+    GET_PROC(cuvidGetDecoderCaps);
+    GET_PROC(cuvidCreateDecoder);
+    GET_PROC(cuvidDestroyDecoder);
+    GET_PROC(cuvidDecodePicture);
+
+    // fetch other functions pointers
+
+    return CUDA_SUCCESS;
+}
+</pre></div>
+</div>
+</section>
+</section>
+<section id="writing-an-efficient-decode-application">
+<h3><span class="section-number">4.4. </span>Writing an Efficient Decode Application<a class="headerlink" href="#writing-an-efficient-decode-application" title="Link to this heading">#</a></h3>
+<p>The NVDEC engine on NVIDIA GPUs is a dedicated hardware block, which decodes the input video bitstream in supported formats. A typical video decode application broadly consists of the following stages:</p>
+<ol class="arabic simple">
+<li><p>De-Muxing</p></li>
+<li><p>Video bitstream parsing and decoding</p></li>
+<li><p>Preparing the frame for further processing</p></li>
+</ol>
+<p>Of these, de-muxing and parsing are not hardware accelerated and therefore outside the scope of this document. The de-muxing can be performed using third party components such as FFmpeg, which provides support for many multiplexed video formats. The sample applications included in the SDK demonstrate de-muxing using FFmpeg.</p>
+<p>Similarly, post-decode or video post-processing (such as scaling, color space conversion, noise reduction, color enhancement etc.) can be effectively performed using user-defined CUDA kernels.</p>
+<p>The post-processed frames can then be sent to the display engine for displaying on the screen, if required. Note that this operation is outside the scope of NVDECODE APIs.</p>
+<p>An optimized implementation should use independent threads for de-muxing, parsing, bitstream decode and processing etc. as explained below:</p>
+<ol class="arabic simple">
+<li><p>De-muxing: This thread demultiplexes the media file and makes the raw bit-stream available for parser to consume.</p></li>
+<li><p>Parsing and decoding: This thread does the parsing of the bitstream and kicks off decoding by calling <code class="docutils literal notranslate"><span class="pre">cuvidDecodePicture()</span></code>.</p></li>
+<li><p>Mapping and making the frame available for further processing: This thread checks if there are any decoded frames available. If yes, then it should call <code class="docutils literal notranslate"><span class="pre">cuvidMapVideoFrame()</span></code> to get the CUDA device pointer and pitch of the frame. The frame can then be used for further processing.</p></li>
+</ol>
+<p>The NVDEC driver internally maintains a queue of 4 frames for efficient pipelining of operations. Please note that this pipeline does not imply any decoding delay for decoding. The decoding starts as soon as the first frame is queued, but the application can continue queuing up input frames so long as space is available without stalling. Typically, by the time application has queued 2-3 frames, decoding of the first frame is complete and the pipeline continues. This pipeline ensures that the hardware decoder is utilized to the maximum extent possible.</p>
+<p>For performance intensive and low latency video codec applications, ensure the PCIE link width is set to the maximum available value. PCIE link width currently configured can be obtained by running command ‘nvidia-smi -q’. PCIE link width can be configured in the system’s BIOS settings.</p>
+<p>In the use cases where there is frequent change of decode resolution and/or post processing parameters, it is recommended to use <code class="docutils literal notranslate"><span class="pre">cuvidReconfigureDecoder()</span></code> instead of destroying the existing decoder instance and recreating a new one.</p>
+<p>The following steps should be followed for optimizing video memory usage:</p>
+<ol class="arabic simple">
+<li><p>Make <code class="docutils literal notranslate"><span class="pre">CUVIDDECODECREATEINFO::ulNumDecodeSurfaces</span> <span class="pre">=</span> <span class="pre">CUVIDEOFORMAT::</span> <span class="pre">min_num_decode_surfaces</span></code>. This will ensure that the underlying driver allocates minimum number of decode surfaces to correctly decode the sequence. In case there is reduction in decoder performance, clients can slightly increase <code class="docutils literal notranslate"><span class="pre">CUVIDDECODECREATEINFO::ulNumDecodeSurfaces</span></code>. It is therefore recommended to choose the optimal value of <code class="docutils literal notranslate"><span class="pre">CUVIDDECODECREATEINFO::ulNumDecodeSurfaces</span></code> to ensure right balance between decoder throughput and memory consumption.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">CUVIDDECODECREATEINFO::ulNumOutputSurfaces</span></code> should be decided optimally after due experimentation for balancing decoder throughput and memory consumption.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">CUVIDDECODECREATEINFO::DeinterlaceMode</span></code> should be set “<code class="docutils literal notranslate"><span class="pre">cudaVideoDeinterlaceMode::</span> <span class="pre">cudaVideoDeinterlaceMode_Weave</span></code>” or “<code class="docutils literal notranslate"><span class="pre">cudaVideoDeinterlaceMode::</span> <span class="pre">cudaVideoDeinterlaceMode_Bob</span></code>”. For interlaced contents, choosing <code class="docutils literal notranslate"><span class="pre">cudaVideoDeinterlaceMode::</span> <span class="pre">cudaVideoDeinterlaceMode_Adaptive</span></code> results to higher quality but increases memory consumption. Using <code class="docutils literal notranslate"><span class="pre">cudaVideoDeinterlaceMode::</span> <span class="pre">cudaVideoDeinterlaceMode_Weave</span></code> or <code class="docutils literal notranslate"><span class="pre">cudaVideoDeinterlaceMode::</span> <span class="pre">cudaVideoDeinterlaceMode_Bob</span></code> results to minimum memory consumption though it may result in lesser video quality. In case “<code class="docutils literal notranslate"><span class="pre">CUVIDDECODECREATEINFO::</span> <span class="pre">DeinterlaceMode</span></code>” is not specified by the client, the underlying display driver sets it to “<code class="docutils literal notranslate"><span class="pre">cudaVideoDeinterlaceMode::</span> <span class="pre">cudaVideoDeinterlaceMode_Adaptive</span></code>” which results to higher memory consumption. Hence it is strongly recommended to choose the right value of <code class="docutils literal notranslate"><span class="pre">CUVIDDECODECREATEINFO::</span> <span class="pre">DeinterlaceMode</span></code> depending on the requirement.</p></li>
+<li><p>While decoding multiple streams it is recommended to allocate minimum number of CUDA contexts and share it across sessions. This saves the memory overhead associated with the CUDA context creation.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">CUVIDDECODECREATEINFO::ulIntraDecodeOnly</span></code> should be set to 1 if it is known beforehand that the sequence contains Intra frames only. This feature is supported only for HEVC, H.264 and VP9. However, decoding might fail if the flag is enabled in case of supported codecs for regular bit streams having P and/or B frames.</p></li>
+</ol>
+<p>The sample applications included with the Video Codec SDK are written to demonstrate the functionality of various APIs, but they may not be fully optimized. Hence programmers are strongly encouraged to ensure that their application is well-designed, with various stages in the decode-postprocess-display pipeline structured in an efficient manner to achieve desired performance and memory consumption.</p>
+</section>
+<section id="allocating-decode-surfaces-dynamically">
+<h3><span class="section-number">4.5. </span>Allocating decode surfaces dynamically<a class="headerlink" href="#allocating-decode-surfaces-dynamically" title="Link to this heading">#</a></h3>
+<p>The bitstream sequence (SPS) often has more DPB size than necessary. In most instances, not all of these surfaces are required. Therefore, the following approach can be used to reduce the number of decode surfaces used during a decode session. This will help lower the memory footprint of each session in most instances, allowing for an increase in the number of simultaneous decode sessions. However, the decode throughput of individual sessions may be slightly reduced, as the surfaces will be reused more frequently.</p>
+<p>The following steps should be followed for further optimizing video memory usage:</p>
+<ol class="arabic simple">
+<li><p>Set <code class="docutils literal notranslate"><span class="pre">CUVIDPARSERPARAMS::bMemoryOptimize</span> <span class="pre">=</span> <span class="pre">1</span></code> before invoking <code class="docutils literal notranslate"><span class="pre">cuvidCreateVideoParser()</span></code>. This will ensure that the parser sends lowest possible <code class="docutils literal notranslate"><span class="pre">CUVIDPICPARAMS::CurrPicIdx</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">pfnSequenceCallback()</span></code> has <code class="docutils literal notranslate"><span class="pre">min_num_decode_surfaces</span></code> information. Return <code class="docutils literal notranslate"><span class="pre">min_num_decode_surfaces</span></code> value from <code class="docutils literal notranslate"><span class="pre">pfnSequenceCallback()</span></code>. This will overwrite DPB size to <code class="docutils literal notranslate"><span class="pre">min_num_decode_surfaces</span></code>.</p></li>
+<li><p>Assign a value to <code class="docutils literal notranslate"><span class="pre">CUVIDDECODECREATEINFO::ulNumDecodeSurfaces</span></code> that is less than <code class="docutils literal notranslate"><span class="pre">min_num_decode_surfaces</span></code>, with the minimum value being 1. Next, create a decoder using <code class="docutils literal notranslate"><span class="pre">cuvidCreateDecoder()</span></code>. This will create a decoder with a reduced number of decode surfaces.</p></li>
+<li><p>In <code class="docutils literal notranslate"><span class="pre">pfnDecodeCallback()</span></code>, check the value of <code class="docutils literal notranslate"><span class="pre">CUVIDPICPARAMS::CurrPicIdx</span></code> sent by the parser.</p>
+<ol class="loweralpha simple">
+<li><p>If <code class="docutils literal notranslate"><span class="pre">CUVIDPICPARAMS::CurrPicIdx</span></code> is less than <code class="docutils literal notranslate"><span class="pre">ulNumDecodeSurfaces</span></code>, continue with the decode using <code class="docutils literal notranslate"><span class="pre">cuvidDecodePicture()</span></code> API.</p></li>
+<li><p>If <code class="docutils literal notranslate"><span class="pre">CUVIDPICPARAMS::CurrPicIdx</span></code> is greater than or equal to <code class="docutils literal notranslate"><span class="pre">ulNumDecodeSurfaces</span></code>, then invoke <code class="docutils literal notranslate"><span class="pre">cuvidReconfigureDecoder()</span></code> with increased <code class="docutils literal notranslate"><span class="pre">CUVIDRECONFIGUREDECODERINFO::ulNumDecodeSurfaces</span></code> to increase the number of decode surfaces. Then, proceed with decoding the frame using <code class="docutils literal notranslate"><span class="pre">cuvidDecodePicture()</span></code>. Note: If <code class="docutils literal notranslate"><span class="pre">cuvidReconfigureDecoder()</span></code> fails with <code class="docutils literal notranslate"><span class="pre">CUDA_ERROR_OUT_OF_MEMORY</span></code> error, application can retry for some time, if <code class="docutils literal notranslate"><span class="pre">cuvidReconfigureDecoder()</span></code> continues to fail, the application needs to handle the failure.</p></li>
+</ol>
+</li>
+</ol>
+</section>
+<section id="getting-decode-statistics-from-the-decoder">
+<h3><span class="section-number">4.6. </span>Getting decode statistics from the decoder<a class="headerlink" href="#getting-decode-statistics-from-the-decoder" title="Link to this heading">#</a></h3>
+<p>The NVDECODE API provides the ability to retrieve detailed decode statistics for each decoded frame. These statistics include per 16x16 block information such as quantization parameters, motion vectors, and coding unit types. This feature is useful in video analytics use cases. The API supports this feature for HEVC (H.265) and H.264 codecs.</p>
+<section id="enabling-decode-statistics">
+<h4><span class="section-number">4.6.1. </span>Enabling decode statistics<a class="headerlink" href="#enabling-decode-statistics" title="Link to this heading">#</a></h4>
+<p>To enable decode statistics, follow these steps:</p>
+<ol class="arabic">
+<li><p><strong>Check decoder capabilities</strong>: Before enabling decode statistics, verify that the decoder supports this feature by calling <code class="docutils literal notranslate"><span class="pre">cuvidGetDecoderCaps()</span></code> and checking the <code class="docutils literal notranslate"><span class="pre">bIsDecodeStatsSupported</span></code> field in the <code class="docutils literal notranslate"><span class="pre">CUVIDDECODECAPS</span></code> structure.</p></li>
+<li><p><strong>Enable the feature during decoder creation</strong>: When creating the decoder with <code class="docutils literal notranslate"><span class="pre">cuvidCreateDecoder()</span></code>, set the <code class="docutils literal notranslate"><span class="pre">enableDecodeFeatures</span></code> field in the <code class="docutils literal notranslate"><span class="pre">CUVIDDECODECREATEINFO</span></code> structure to include the <code class="docutils literal notranslate"><span class="pre">cuvidDecodeFeature_DecStats</span></code> flag:</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="n">CUVIDDECODECREATEINFO</span><span class="w"> </span><span class="n">videoDecodeCreateInfo</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{};</span>
+<span class="c1">// ... other initialization ...</span>
+<span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">decodecaps</span><span class="p">.</span><span class="n">bIsDecodeStatsSupported</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">videoDecodeCreateInfo</span><span class="p">.</span><span class="n">enableDecodeFeatures</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="mi">1</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="n">cuvidDecodeFeature_DecStats</span><span class="p">);</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</li>
+<li><p><strong>Driver allocates GPU memory for statistics</strong>: The driver allocates GPU memory to store the decode statistics. The size of each statistics buffer is calculated as shown below. The driver allocates N such buffers, where N = <code class="docutils literal notranslate"><span class="pre">CUVIDRECONFIGUREDECODERINFO::ulNumDecodeSurfaces</span></code>.</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="kt">unsigned</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">decodeStatsSize</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">sizeof</span><span class="p">(</span><span class="n">CUVIDDECODESTATSHEADER</span><span class="p">)</span><span class="w"> </span><span class="o">+</span>
+<span class="w">                              </span><span class="p">((</span><span class="n">width</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">15</span><span class="p">)</span><span class="w"> </span><span class="o">&gt;&gt;</span><span class="w"> </span><span class="mi">4</span><span class="p">)</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="p">((</span><span class="n">height</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">15</span><span class="p">)</span><span class="w"> </span><span class="o">&gt;&gt;</span><span class="w"> </span><span class="mi">4</span><span class="p">)</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="k">sizeof</span><span class="p">(</span><span class="n">CUVIDDECODESTATS</span><span class="p">);</span>
+</pre></div>
+</div>
+<p>Where:
+- <code class="docutils literal notranslate"><span class="pre">width</span></code> and <code class="docutils literal notranslate"><span class="pre">height</span></code> are the frame dimensions
+- Each 16x16 macroblock requires one <code class="docutils literal notranslate"><span class="pre">CUVIDDECODESTATS</span></code> structure
+- The total includes a header structure <code class="docutils literal notranslate"><span class="pre">CUVIDDECODESTATSHEADER</span></code></p>
+</li>
+</ol>
+</section>
+<section id="retrieving-decode-statistics">
+<h4><span class="section-number">4.6.2. </span>Retrieving decode statistics<a class="headerlink" href="#retrieving-decode-statistics" title="Link to this heading">#</a></h4>
+<p>The decode statistics are retrieved during the frame mapping process using <code class="docutils literal notranslate"><span class="pre">cuvidMapVideoFrame()</span></code>:</p>
+<ol class="arabic">
+<li><p><strong>Set up the extended processing parameters</strong>: Create a <code class="docutils literal notranslate"><span class="pre">CUVIDPROCPARAMSEXT</span></code> structure and set the <code class="docutils literal notranslate"><span class="pre">decode_stats_dptr</span></code> field to point to a variable that will receive the GPU memory address containing the statistics:</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="n">CUVIDPROCPARAMSEXT</span><span class="w"> </span><span class="n">videoProcessingParametersExt</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{};</span>
+<span class="n">CUdeviceptr</span><span class="w"> </span><span class="n">decodeStatsDptr</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="n">videoProcessingParametersExt</span><span class="p">.</span><span class="n">decode_stats_dptr</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="o">&amp;</span><span class="n">decodeStatsDptr</span><span class="p">;</span>
+</pre></div>
+</div>
+</li>
+<li><p><strong>Attach to the main processing parameters</strong>: Link the extended parameters to the main <code class="docutils literal notranslate"><span class="pre">CUVIDPROCPARAMS</span></code> structure:</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="n">CUVIDPROCPARAMS</span><span class="w"> </span><span class="n">videoProcessingParameters</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{};</span>
+<span class="c1">// ... other initialization ...</span>
+<span class="n">videoProcessingParameters</span><span class="p">.</span><span class="n">pCuvidProcExt</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="o">&amp;</span><span class="n">videoProcessingParametersExt</span><span class="p">;</span>
+</pre></div>
+</div>
+</li>
+<li><p><strong>Map the video frame</strong>: Call <code class="docutils literal notranslate"><span class="pre">cuvidMapVideoFrame()</span></code> with the processing parameters. After successful mapping, the <code class="docutils literal notranslate"><span class="pre">decodeStatsDptr</span></code> variable will contain the GPU memory address where the statistics are stored:</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="n">CUdeviceptr</span><span class="w"> </span><span class="n">dpSrcFrame</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="kt">unsigned</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">nSrcPitch</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<span class="n">cuvidMapVideoFrame</span><span class="p">(</span><span class="n">hDecoder</span><span class="p">,</span><span class="w"> </span><span class="n">pictureIndex</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">dpSrcFrame</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">nSrcPitch</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">videoProcessingParameters</span><span class="p">);</span>
+</pre></div>
+</div>
+</li>
+<li><p><strong>Copy statistics to host memory or process directly</strong>: Use <code class="docutils literal notranslate"><span class="pre">cuMemcpyDtoH()</span></code> to copy the statistics from GPU memory to host memory for CPU-based analysis, or process the statistics directly in GPU memory using CUDA kernels for real-time applications. The GPU memory address is provided in the <code class="docutils literal notranslate"><span class="pre">decode_stats_dptr</span></code> variable after successful frame mapping.</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">decodeStatsDptr</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="kt">uint8_t</span><span class="o">*</span><span class="w"> </span><span class="n">pDecodeStats</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">new</span><span class="w"> </span><span class="kt">uint8_t</span><span class="p">[</span><span class="n">decodeStatsSize</span><span class="p">];</span>
+<span class="w">    </span><span class="n">cuMemcpyDtoH</span><span class="p">(</span><span class="n">pDecodeStats</span><span class="p">,</span><span class="w"> </span><span class="n">decodeStatsDptr</span><span class="p">,</span><span class="w"> </span><span class="n">decodeStatsSize</span><span class="p">);</span>
+<span class="w">    </span><span class="c1">// Process the statistics...</span>
+<span class="w">    </span><span class="n">delete</span><span class="p">[]</span><span class="w"> </span><span class="n">pDecodeStats</span><span class="p">;</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</li>
+</ol>
+</section>
+<section id="decode-statistics-structure">
+<h4><span class="section-number">4.6.3. </span>Decode statistics structure<a class="headerlink" href="#decode-statistics-structure" title="Link to this heading">#</a></h4>
+<p>The decode statistics buffer contains two main components:</p>
+<p><strong>1. Header Structure (CUVIDDECODESTATSHEADER)</strong></p>
+<p>The header structure provides metadata about the decode statistics:</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="k">typedef</span><span class="w"> </span><span class="k">struct</span><span class="w"> </span><span class="nc">_CUVIDDECODESTATSHEADER</span>
+<span class="p">{</span>
+<span class="w">    </span><span class="kt">unsigned</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="n">bIsStatsPresent</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span><span class="w">   </span><span class="c1">// Flag to indicate whether decode stats dump is present or not.</span>
+<span class="w">    </span><span class="kt">unsigned</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="n">bIsMV1Valid</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span><span class="w">       </span><span class="c1">// Flag to indicate if MV1 is valid (set to 1 if valid)</span>
+<span class="w">    </span><span class="kt">unsigned</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="n">reserved1</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="mi">6</span><span class="p">;</span><span class="w">         </span><span class="c1">// Reserved : shall be set to 0</span>
+<span class="w">    </span><span class="kt">unsigned</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="n">reserved2</span><span class="p">[</span><span class="mi">3</span><span class="p">];</span><span class="w">          </span><span class="c1">// Reserved : shall be set to 0</span>
+<span class="w">    </span><span class="kt">unsigned</span><span class="w"> </span><span class="kt">int</span><span class="w">  </span><span class="n">mbCount</span><span class="p">;</span><span class="w">               </span><span class="c1">// Total number of 16x16 blocks in current frame</span>
+<span class="w">    </span><span class="kt">unsigned</span><span class="w"> </span><span class="kt">int</span><span class="w">  </span><span class="n">size</span><span class="p">;</span><span class="w">                  </span><span class="c1">// Size of decode stats data of all blocks (for sanity check)</span>
+<span class="w">    </span><span class="kt">unsigned</span><span class="w"> </span><span class="kt">int</span><span class="w">  </span><span class="n">reserved3</span><span class="p">[</span><span class="mi">5</span><span class="p">];</span><span class="w">          </span><span class="c1">// Reserved : shall be set to 0</span>
+<span class="p">}</span><span class="w"> </span><span class="n">CUVIDDECODESTATSHEADER</span><span class="p">;</span>
+</pre></div>
+</div>
+<p><strong>Field Descriptions:</strong></p>
+<ul class="simple">
+<li><p><strong>bIsStatsPresent</strong>: Boolean flag indicating whether decode statistics are present for this frame</p></li>
+<li><p><strong>bIsMV1Valid</strong>: Boolean flag indicating if MV1 is valid (set to 1 if valid)</p></li>
+<li><p><strong>mbCount</strong>: Total number of 16x16 macroblocks in the current frame (calculated as <cite>((width + 15) &gt;&gt; 4) * ((height + 15) &gt;&gt; 4)</cite>)</p></li>
+<li><p><strong>size</strong>: Size of the decode statistics data in bytes (for validation purposes). The size of the decode statistics data of all blocks is <cite>mbCount * sizeof(CUVIDDECODESTATS)</cite>.</p></li>
+</ul>
+<p><strong>2. Per-Macroblock Statistics (Array of CUVIDDECODESTATS)</strong></p>
+<p>Following the header, the buffer contains an array of <cite>CUVIDDECODESTATS</cite> structures, one for each 16x16 macroblock in raster scan order:</p>
+<div class="highlight-c notranslate"><div class="highlight"><pre><span></span><span class="k">typedef</span><span class="w"> </span><span class="k">struct</span><span class="w"> </span><span class="nc">_CUVIDDECODESTATS</span>
+<span class="p">{</span>
+<span class="w">    </span><span class="kt">unsigned</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="n">qp_luma</span><span class="p">;</span><span class="w">          </span><span class="c1">// Quantization Parameter for luma component</span>
+<span class="w">    </span><span class="kt">unsigned</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="n">qp_invalid</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span><span class="w">   </span><span class="c1">// 0: QP Valid, 1: QP is invalid</span>
+<span class="w">    </span><span class="kt">unsigned</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="n">cu_type</span><span class="w">    </span><span class="o">:</span><span class="w"> </span><span class="mi">3</span><span class="p">;</span><span class="w">   </span><span class="c1">// Coding Unit type</span>
+<span class="w">    </span><span class="kt">unsigned</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="n">reserved1</span><span class="w">  </span><span class="o">:</span><span class="w"> </span><span class="mi">4</span><span class="p">;</span><span class="w">   </span><span class="c1">// Reserved for alignment/future use</span>
+<span class="w">    </span><span class="kt">unsigned</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="n">reserved2</span><span class="p">[</span><span class="mi">2</span><span class="p">];</span><span class="w">     </span><span class="c1">// Reserved for alignment/future use</span>
+<span class="w">    </span><span class="kt">short</span><span class="w"> </span><span class="n">mv0_x</span><span class="p">;</span><span class="w">                    </span><span class="c1">// First motion vector X component</span>
+<span class="w">    </span><span class="kt">short</span><span class="w"> </span><span class="n">mv0_y</span><span class="p">;</span><span class="w">                    </span><span class="c1">// First motion vector Y component</span>
+<span class="w">    </span><span class="kt">short</span><span class="w"> </span><span class="n">mv1_x</span><span class="p">;</span><span class="w">                    </span><span class="c1">// Second motion vector X component</span>
+<span class="w">    </span><span class="kt">short</span><span class="w"> </span><span class="n">mv1_y</span><span class="p">;</span><span class="w">                    </span><span class="c1">// Second motion vector Y component</span>
+<span class="p">}</span><span class="w"> </span><span class="n">CUVIDDECODESTATS</span><span class="p">;</span>
+</pre></div>
+</div>
+<p><strong>Field Descriptions:</strong></p>
+<ul class="simple">
+<li><p><strong>qp_luma</strong>: Quantization parameter for luma component
+* For H.264/HEVC: QP’Y + Bitdepth-QP-ScaleFactor
+* Bitdepth-QP-ScaleFactor = 0 for 8-bit content, 12 for 10-bit content, 24 for 12-bit content</p></li>
+<li><p><strong>qp_invalid</strong>: Flag indicating if QP is invalid (0: Valid, 1: Invalid)</p></li>
+<li><p><strong>cu_type</strong>: Coding unit type (3-bit field):
+* 0: Intra-coded block
+* 1: Inter-coded block
+* 2: Skip block
+* 3: PCM block
+* 7: Invalid block</p></li>
+<li><p><strong>mv0_x, mv0_y</strong>: First motion vector components
+* H.264: Forward motion vector if valid, otherwise backward motion vector
+* HEVC: Forward motion vector</p></li>
+<li><p><strong>mv1_x, mv1_y</strong>: Second motion vector components (for B-frames)
+* H.264: Unused (set to 0)
+* HEVC: Backward motion vector</p></li>
+</ul>
+<p><strong>Memory Layout:</strong></p>
+<p>The complete buffer layout is:</p>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="p">[</span><span class="n">CUVIDDECODESTATSHEADER</span><span class="p">][</span><span class="n">CUVIDDECODESTATS</span><span class="p">][</span><span class="n">CUVIDDECODESTATS</span><span class="p">]...[</span><span class="n">CUVIDDECODESTATS</span><span class="p">]</span>
+<span class="w"> </span><span class="o">^</span><span class="w">                      </span><span class="o">^</span><span class="w">                 </span><span class="o">^</span><span class="w">                    </span><span class="o">^</span>
+<span class="w"> </span><span class="n">Header</span><span class="w">                 </span><span class="n">Block</span><span class="w"> </span><span class="mi">0</span><span class="w">           </span><span class="n">Block</span><span class="w"> </span><span class="mi">1</span><span class="w">           </span><span class="n">Block</span><span class="w"> </span><span class="n">N</span><span class="mi">-1</span>
+</pre></div>
+</div>
+<p>Where N = <cite>mbCount</cite> from the header.</p>
+</section>
+<section id="sample-application-flow">
+<h4><span class="section-number">4.6.4. </span>Sample application flow<a class="headerlink" href="#sample-application-flow" title="Link to this heading">#</a></h4>
+<p>The AppDec sample application demonstrates the complete flow for obtaining decode statistics:</p>
+<ol class="arabic">
+<li><p><strong>Initialization</strong>: The application enables decode statistics during decoder creation by passing the <code class="docutils literal notranslate"><span class="pre">bEnableDecodeStats</span></code> parameter to the <code class="docutils literal notranslate"><span class="pre">NvDecoder</span></code> constructor.</p></li>
+<li><p><strong>Statistics collection</strong>: During frame processing, the application calls <code class="docutils literal notranslate"><span class="pre">NvDecoder::GetDecodeStats()</span></code> to retrieve statistics for each decoded frame.</p></li>
+<li><p><strong>File output</strong>: The statistics are written to a binary file for later analysis.</p>
+<p>Command to run AppDec with statistics dumping:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>./AppDec<span class="w"> </span>-i<span class="w"> </span>input.h264<span class="w"> </span>-o<span class="w"> </span>output.yuv<span class="w"> </span>-dumpstats<span class="w"> </span>stats.bin
+</pre></div>
+</div>
+<p>The <code class="docutils literal notranslate"><span class="pre">-dumpstats</span></code> parameter specifies the output file where decode statistics will be saved in binary format.</p>
+</li>
+<li><p><strong>Memory management</strong>: The application properly manages the host memory allocated for statistics storage.</p></li>
+</ol>
+<p>The key functions in the sample application include:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">NvDecoder::GetDecodeStats()</span></code>: Retrieves decode statistics for the next available frame</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">NvDecoder::GetLockedDecodeStats()</span></code>: Retrieves and removes statistics from the internal queue</p></li>
+<li><p>Proper cleanup of allocated memory in the destructor</p></li>
+</ul>
+</section>
+</section>
+<section id="random-frame-access-and-seeking">
+<h3><span class="section-number">4.7. </span>Random Frame Access and Seeking<a class="headerlink" href="#random-frame-access-and-seeking" title="Link to this heading">#</a></h3>
+<p>The NVIDIA Video Codec SDK provides comprehensive seeking and random frame access capabilities through the <code class="docutils literal notranslate"><span class="pre">SeekUtils</span></code> class and the high-level <code class="docutils literal notranslate"><span class="pre">NvVideoDecoder</span></code> interface. These features enable efficient frame-by-frame access, batch decoding, and GOP-aware seeking for video analytics and non-linear video processing applications.</p>
+<p>The seeking feature supports:</p>
+<ul class="simple">
+<li><p><strong>Random frame access</strong>: Decode specific frames by index with GOP-aware optimization</p></li>
+<li><p><strong>Batch operations</strong>: Efficiently retrieve multiple sequential or arbitrary frames</p></li>
+<li><p><strong>Backward seeking</strong>: Automatic decoder reset and state management for backward seeks</p></li>
+<li><p><strong>Open GOP support</strong>: Handle streams with open GOP structure (non-IDR I-frames)</p></li>
+<li><p><strong>PTS-based optimization</strong>: Skip frames before target frame during seeking</p></li>
+<li><p><strong>Sequential mode</strong>: Support for non-seekable streams (e.g., network or elementary streams)</p></li>
+</ul>
+<section id="understanding-the-seek-architecture">
+<h4><span class="section-number">4.7.1. </span>Understanding the Seek Architecture<a class="headerlink" href="#understanding-the-seek-architecture" title="Link to this heading">#</a></h4>
+<p>The seeking functionality is built on three main components:</p>
+<p><strong>1. SeekUtils Class (Low-Level API)</strong></p>
+<p><code class="docutils literal notranslate"><span class="pre">SeekUtils</span></code> is the core seeking layer that provides:</p>
+<ul class="simple">
+<li><p>GOP-aware seeking with keyframe detection</p></li>
+<li><p>Frame caching and pending frame management</p></li>
+<li><p>PTS-based frame filtering</p></li>
+<li><p>Support for both seekable and non-seekable streams</p></li>
+</ul>
+<p><strong>2. NvVideoDecoder Class (High-Level API)</strong></p>
+<p><code class="docutils literal notranslate"><span class="pre">NvVideoDecoder</span></code> provides a simplified interface built on top of <code class="docutils literal notranslate"><span class="pre">SeekUtils</span></code>:</p>
+<ul class="simple">
+<li><p>Operator-based frame access: <code class="docutils literal notranslate"><span class="pre">decoder[index]</span></code> and <code class="docutils literal notranslate"><span class="pre">decoder[{indices}]</span></code></p></li>
+<li><p>Automatic decoder reconfiguration for multiple video sources</p></li>
+<li><p>Decoder caching for efficient playlist (multiple videos) processing</p></li>
+<li><p>Simplified resource management</p></li>
+</ul>
+<p><strong>3. AppDecVideoDecoder Sample Application</strong></p>
+<p>The <code class="docutils literal notranslate"><span class="pre">AppDecVideoDecoder</span></code> sample demonstrates practical usage:</p>
+<ul class="simple">
+<li><p>Command-line interface for frame selection</p></li>
+<li><p>Support for frame indices, time-based access, and range syntax</p></li>
+<li><p>Integration with decode statistics</p></li>
+<li><p>Playlist processing with decoder reuse</p></li>
+</ul>
+</section>
+<section id="using-nvvideodecoder-for-frame-access">
+<h4><span class="section-number">4.7.2. </span>Using NvVideoDecoder for Frame Access<a class="headerlink" href="#using-nvvideodecoder-for-frame-access" title="Link to this heading">#</a></h4>
+<p>The <code class="docutils literal notranslate"><span class="pre">NvVideoDecoder</span></code> class provides the simplest way to access frames by index. Follow these steps:</p>
+<ol class="arabic">
+<li><p><strong>Create the decoder instance</strong>: Initialize with the video file path and CUDA context:</p>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;NvVideoDecoder.h&quot;</span>
+
+<span class="c1">// Create CUDA context</span>
+<span class="n">CUcontext</span><span class="w"> </span><span class="n">cuContext</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">NULL</span><span class="p">;</span>
+<span class="n">ck</span><span class="p">(</span><span class="n">cuCtxCreate</span><span class="p">(</span><span class="o">&amp;</span><span class="n">cuContext</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">));</span>
+
+<span class="c1">// Create decoder with optional scanning for keyframe metadata</span>
+<span class="n">NvVideoDecoder</span><span class="w"> </span><span class="n">decoder</span><span class="p">(</span><span class="s">&quot;input.mp4&quot;</span><span class="p">,</span>
+<span class="w">                      </span><span class="n">cuContext</span><span class="p">,</span>
+<span class="w">                      </span><span class="nb">NULL</span><span class="p">,</span><span class="w">              </span><span class="c1">// CUDA stream (NULL = default)</span>
+<span class="w">                      </span><span class="nb">true</span><span class="p">,</span><span class="w">              </span><span class="c1">// useDeviceMemory</span>
+<span class="w">                      </span><span class="mi">0</span><span class="p">,</span><span class="w">                 </span><span class="c1">// maxWidth (0 = auto)</span>
+<span class="w">                      </span><span class="mi">0</span><span class="p">,</span><span class="w">                 </span><span class="c1">// maxHeight (0 = auto)</span>
+<span class="w">                      </span><span class="nb">true</span><span class="p">,</span><span class="w">              </span><span class="c1">// needScannedStreamMetadata</span>
+<span class="w">                      </span><span class="mi">0</span><span class="p">,</span><span class="w">                 </span><span class="c1">// decoderCacheSize</span>
+<span class="w">                      </span><span class="nb">false</span><span class="p">,</span><span class="w">             </span><span class="c1">// enableDecodeStats</span>
+<span class="w">                      </span><span class="nb">false</span><span class="p">);</span><span class="w">            </span><span class="c1">// enableOpenGOP</span>
+</pre></div>
+</div>
+</li>
+<li><p><strong>Access frames using operator[]</strong>: The operator syntax provides intuitive frame access:</p>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="c1">// Single frame access</span>
+<span class="n">NvDecFrame</span><span class="w"> </span><span class="n">frame</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">decoder</span><span class="p">[</span><span class="mi">100</span><span class="p">];</span><span class="w">  </span><span class="c1">// Get frame at index 100</span>
+
+<span class="c1">// Multiple frames with vector syntax</span>
+<span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="kt">uint32_t</span><span class="o">&gt;</span><span class="w"> </span><span class="n">indices</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="mi">10</span><span class="p">,</span><span class="w"> </span><span class="mi">20</span><span class="p">,</span><span class="w"> </span><span class="mi">30</span><span class="p">,</span><span class="w"> </span><span class="mi">40</span><span class="p">};</span>
+<span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">NvDecFrame</span><span class="o">&gt;</span><span class="w"> </span><span class="n">frames</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">decoder</span><span class="p">[</span><span class="n">indices</span><span class="p">];</span>
+
+<span class="c1">// Sequential batch access</span>
+<span class="n">decoder</span><span class="p">.</span><span class="n">SeekToIndex</span><span class="p">(</span><span class="mi">50</span><span class="p">);</span><span class="w">  </span><span class="c1">// Set starting position</span>
+<span class="n">std</span><span class="o">::</span><span class="n">vector</span><span class="o">&lt;</span><span class="n">NvDecFrame</span><span class="o">&gt;</span><span class="w"> </span><span class="n">batch</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">decoder</span><span class="p">.</span><span class="n">GetBatchFrames</span><span class="p">(</span><span class="mi">10</span><span class="p">);</span><span class="w">  </span><span class="c1">// Get 10 frames</span>
+</pre></div>
+</div>
+</li>
+<li><p><strong>Access frame data</strong>: The <code class="docutils literal notranslate"><span class="pre">NvDecFrame</span></code> structure contains:</p>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="k">struct</span><span class="w"> </span><span class="nc">NvDecFrame</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">CUdeviceptr</span><span class="w"> </span><span class="n">data</span><span class="p">;</span><span class="w">           </span><span class="c1">// GPU frame buffer pointer</span>
+<span class="w">    </span><span class="kt">int64_t</span><span class="w"> </span><span class="n">timestamp</span><span class="p">;</span><span class="w">          </span><span class="c1">// Frame timestamp (PTS)</span>
+<span class="w">    </span><span class="kt">uint8_t</span><span class="o">*</span><span class="w"> </span><span class="n">decodeStats</span><span class="p">;</span><span class="w">       </span><span class="c1">// Decode statistics buffer (if enabled)</span>
+<span class="w">    </span><span class="kt">uint32_t</span><span class="w"> </span><span class="n">decodeStatsSize</span><span class="p">;</span><span class="w">   </span><span class="c1">// Decode statistics size</span>
+<span class="w">    </span><span class="kt">bool</span><span class="w"> </span><span class="n">isSkipped</span><span class="p">;</span><span class="w">             </span><span class="c1">// True if frame was skipped by seekPTS optimization</span>
+<span class="p">};</span>
+</pre></div>
+</div>
+</li>
+<li><p><strong>Copy frame to host memory</strong> (if needed):</p>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="c1">// Get frame metadata</span>
+<span class="n">StreamMetadata</span><span class="w"> </span><span class="n">metadata</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">decoder</span><span class="p">.</span><span class="n">GetStreamMetadata</span><span class="p">();</span>
+<span class="kt">uint32_t</span><span class="w"> </span><span class="n">frameSize</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">metadata</span><span class="p">.</span><span class="n">width</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">metadata</span><span class="p">.</span><span class="n">height</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mi">3</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="mi">2</span><span class="p">;</span><span class="w">  </span><span class="c1">// NV12 format</span>
+
+<span class="c1">// Allocate host memory</span>
+<span class="kt">uint8_t</span><span class="o">*</span><span class="w"> </span><span class="n">hostFrame</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">new</span><span class="w"> </span><span class="kt">uint8_t</span><span class="p">[</span><span class="n">frameSize</span><span class="p">];</span>
+
+<span class="c1">// Copy from GPU to host</span>
+<span class="n">ck</span><span class="p">(</span><span class="n">cuMemcpyDtoH</span><span class="p">(</span><span class="n">hostFrame</span><span class="p">,</span><span class="w"> </span><span class="n">frame</span><span class="p">.</span><span class="n">data</span><span class="p">,</span><span class="w"> </span><span class="n">frameSize</span><span class="p">));</span>
+
+<span class="c1">// Process frame...</span>
+
+<span class="c1">// Clean up</span>
+<span class="k">delete</span><span class="p">[]</span><span class="w"> </span><span class="n">hostFrame</span><span class="p">;</span>
+</pre></div>
+</div>
+</li>
+<li><p><strong>Get stream metadata</strong>: Retrieve video properties:</p>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="c1">// Basic metadata (fast, no scanning)</span>
+<span class="n">StreamMetadata</span><span class="w"> </span><span class="n">metadata</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">decoder</span><span class="p">.</span><span class="n">GetStreamMetadata</span><span class="p">();</span>
+<span class="n">std</span><span class="o">::</span><span class="n">cout</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="s">&quot;Width: &quot;</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="n">metadata</span><span class="p">.</span><span class="n">width</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+</pre></div>
+</div>
+</li>
+<li><p><strong>Time-based frame access</strong>: Convert timestamps to frame indices:</p>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="c1">// Get frame at specific time (in seconds)</span>
+<span class="kt">float</span><span class="w"> </span><span class="n">timeInSeconds</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">5.5f</span><span class="p">;</span>
+<span class="kt">uint32_t</span><span class="w"> </span><span class="n">frameIndex</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">decoder</span><span class="p">.</span><span class="n">GetIndexFromTimeInSeconds</span><span class="p">(</span><span class="n">timeInSeconds</span><span class="p">);</span>
+<span class="n">NvDecFrame</span><span class="w"> </span><span class="n">frame</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">decoder</span><span class="p">[</span><span class="n">frameIndex</span><span class="p">];</span>
+</pre></div>
+</div>
+<p><strong>Note:</strong> Time-based seeking assumes constant frame rate (CFR). For variable frame rate (VFR) videos, the frame index calculation may be inaccurate. In such cases, use frame index-based seeking with <code class="docutils literal notranslate"><span class="pre">-framelist</span></code> or <code class="docutils literal notranslate"><span class="pre">-f</span></code> for precise frame selection.</p>
+</li>
+</ol>
+</section>
+<section id="enabling-open-gop-support">
+<h4><span class="section-number">4.7.3. </span>Enabling Open GOP Support<a class="headerlink" href="#enabling-open-gop-support" title="Link to this heading">#</a></h4>
+<p>Open GOP (Group of Pictures) streams contain non-IDR I-frames (CRA frames in HEVC) that may reference frames from previous GOPs. To correctly decode these streams when seeking:</p>
+<ol class="arabic">
+<li><p><strong>Enable during decoder creation</strong>:</p>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="n">NvVideoDecoder</span><span class="w"> </span><span class="n">decoder</span><span class="p">(</span><span class="s">&quot;input.mp4&quot;</span><span class="p">,</span>
+<span class="w">                      </span><span class="n">cuContext</span><span class="p">,</span>
+<span class="w">                      </span><span class="nb">NULL</span><span class="p">,</span>
+<span class="w">                      </span><span class="nb">true</span><span class="p">,</span>
+<span class="w">                      </span><span class="mi">0</span><span class="p">,</span>
+<span class="w">                      </span><span class="mi">0</span><span class="p">,</span>
+<span class="w">                      </span><span class="nb">true</span><span class="p">,</span><span class="w">    </span><span class="c1">// needScannedStreamMetadata - required for open GOP</span>
+<span class="w">                      </span><span class="mi">0</span><span class="p">,</span>
+<span class="w">                      </span><span class="nb">false</span><span class="p">,</span>
+<span class="w">                      </span><span class="nb">true</span><span class="p">);</span><span class="w">   </span><span class="c1">// enableOpenGOP</span>
+</pre></div>
+</div>
+</li>
+<li><p><strong>Or enable after creation</strong>:</p>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="n">decoder</span><span class="p">.</span><span class="n">EnableOpenGOPSupport</span><span class="p">(</span><span class="nb">true</span><span class="p">);</span>
+</pre></div>
+</div>
+</li>
+<li><p><strong>How it works</strong>:</p>
+<p>When open GOP support is enabled:</p>
+<ul class="simple">
+<li><p>The decoder scans for both keyframes (I-frames) and IDR frames</p></li>
+<li><p>For seeking, it uses the nearest IDR frame instead of the nearest keyframe</p></li>
+<li><p>This ensures all reference frames are available for decoding non-IDR I-frames</p></li>
+<li><p>The <code class="docutils literal notranslate"><span class="pre">IsOpenGOP()</span></code> check compares IDR count vs keyframe count to detect open GOP structure</p></li>
+</ul>
+</li>
+</ol>
+</section>
+<section id="pts-based-frame-skipping-optimization">
+<h4><span class="section-number">4.7.4. </span>PTS-Based Frame Skipping Optimization<a class="headerlink" href="#pts-based-frame-skipping-optimization" title="Link to this heading">#</a></h4>
+<p>The PTS (Presentation Timestamp) frame skipping feature optimizes seeking performance by skipping frames that come before the target frame. This is enabled by default but can be controlled:</p>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="c1">// Disable PTS frame skipping (for debugging or compatibility)</span>
+<span class="n">decoder</span><span class="p">.</span><span class="n">SetPTSFrameSkip</span><span class="p">(</span><span class="nb">false</span><span class="p">);</span>
+
+<span class="c1">// Check if enabled</span>
+<span class="kt">bool</span><span class="w"> </span><span class="n">isEnabled</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">decoder</span><span class="p">.</span><span class="n">IsPTSFrameSkipEnabled</span><span class="p">();</span>
+</pre></div>
+</div>
+<p><strong>How it works:</strong></p>
+<ol class="arabic simple">
+<li><p>When seeking to a target frame, <code class="docutils literal notranslate"><span class="pre">SeekUtils</span></code> calculates the PTS threshold based on the frame before the target</p></li>
+<li><p>This threshold is passed to <code class="docutils literal notranslate"><span class="pre">NvDecoder::setSeekPTS()</span></code></p></li>
+<li><p>The decoder marks frames with PTS &lt; threshold as “skipped” (<code class="docutils literal notranslate"><span class="pre">isSkipped</span> <span class="pre">=</span> <span class="pre">true</span></code>)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">SeekUtils</span></code> automatically unlocks skipped frames without processing them</p></li>
+<li><p>This reduces memory copies and processing overhead for frames that won’t be used</p></li>
+</ol>
+<p><strong>Note:</strong> Disable this optimization if you encounter issues with streams that have non-standard PTS ordering.</p>
+</section>
+<section id="handling-non-seekable-streams">
+<h4><span class="section-number">4.7.5. </span>Handling Non-Seekable Streams<a class="headerlink" href="#handling-non-seekable-streams" title="Link to this heading">#</a></h4>
+<p>For network streams, pipes, or elementary streams (raw H.264/HEVC files without containers) that don’t support efficient random access:</p>
+<ol class="arabic">
+<li><p><strong>Sequential mode is automatic</strong>: <code class="docutils literal notranslate"><span class="pre">SeekUtils</span></code> detects non-seekable streams using <code class="docutils literal notranslate"><span class="pre">FFmpegDemuxer::IsSeekable()</span></code></p></li>
+<li><p><strong>Limited seeking capabilities</strong>:</p>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="c1">// Check if stream is seekable</span>
+<span class="kt">bool</span><span class="w"> </span><span class="n">isSeekable</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">decoder</span><span class="p">.</span><span class="n">IsSeekable</span><span class="p">();</span>
+
+<span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">isSeekable</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="c1">// Forward-only seeking is efficient</span>
+<span class="w">    </span><span class="c1">// Backward seeking is supported but requires decoder reset</span>
+<span class="w">    </span><span class="c1">// and re-decoding from the beginning (non-optimal)</span>
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">cout</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="s">&quot;Stream has limited seeking support&quot;</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</li>
+<li><p><strong>Sequential frame access</strong>:</p>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="c1">// For non-seekable streams, sequential access is most efficient</span>
+<span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="kt">uint32_t</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">numFrames</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="o">++</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">NvDecFrame</span><span class="w"> </span><span class="n">frame</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">decoder</span><span class="p">[</span><span class="n">i</span><span class="p">];</span>
+<span class="w">    </span><span class="c1">// Process frame...</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</li>
+<li><p><strong>Limitations</strong>:</p>
+<ul class="simple">
+<li><p>Forward seeking: Efficient (decoder continues from current position)</p></li>
+<li><p>Backward seeking: Supported but non-optimal (requires decoder reset and re-decode from start)</p></li>
+<li><p>GOP-aware optimization is disabled (no keyframe index available)</p></li>
+<li><p>Container formats (MP4, MKV, etc.) provide much better seeking performance</p></li>
+</ul>
+</li>
+</ol>
+</section>
+<section id="decoder-reconfiguration-for-multiple-videos">
+<h4><span class="section-number">4.7.6. </span>Decoder Reconfiguration for Multiple Videos<a class="headerlink" href="#decoder-reconfiguration-for-multiple-videos" title="Link to this heading">#</a></h4>
+<p><code class="docutils literal notranslate"><span class="pre">NvVideoDecoder</span></code> supports efficient switching between multiple video sources with automatic decoder caching:</p>
+<ol class="arabic">
+<li><p><strong>Enable decoder caching</strong>:</p>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="c1">// Create decoder with cache size (e.g., 3 decoders)</span>
+<span class="n">NvVideoDecoder</span><span class="w"> </span><span class="n">decoder</span><span class="p">(</span><span class="s">&quot;video1.mp4&quot;</span><span class="p">,</span>
+<span class="w">                      </span><span class="n">cuContext</span><span class="p">,</span>
+<span class="w">                      </span><span class="nb">NULL</span><span class="p">,</span>
+<span class="w">                      </span><span class="nb">true</span><span class="p">,</span>
+<span class="w">                      </span><span class="mi">0</span><span class="p">,</span>
+<span class="w">                      </span><span class="mi">0</span><span class="p">,</span>
+<span class="w">                      </span><span class="nb">true</span><span class="p">,</span>
+<span class="w">                      </span><span class="mi">3</span><span class="p">);</span><span class="w">    </span><span class="c1">// decoderCacheSize = 3</span>
+</pre></div>
+</div>
+</li>
+<li><p><strong>Reconfigure for new video</strong>:</p>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="c1">// Switch to new video</span>
+<span class="n">ReconfigureStatus</span><span class="w"> </span><span class="n">status</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">decoder</span><span class="p">.</span><span class="n">ReconfigureDecoder</span><span class="p">(</span><span class="s">&quot;video2.mp4&quot;</span><span class="p">,</span><span class="w"> </span><span class="nb">false</span><span class="p">);</span>
+
+<span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">status</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">ReconfigureStatus</span><span class="o">::</span><span class="n">CacheHit</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">cout</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="s">&quot;Reused cached decoder&quot;</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+<span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">status</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">ReconfigureStatus</span><span class="o">::</span><span class="n">CacheMiss</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">cout</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="s">&quot;Created new decoder&quot;</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+<span class="p">}</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">status</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">ReconfigureStatus</span><span class="o">::</span><span class="n">ResetState</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">cout</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="s">&quot;Same source, state reset only&quot;</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">endl</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="c1">// Access frames from new video</span>
+<span class="n">NvDecFrame</span><span class="w"> </span><span class="n">frame</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">decoder</span><span class="p">[</span><span class="mi">50</span><span class="p">];</span>
+</pre></div>
+</div>
+</li>
+<li><p><strong>Caching mechanism</strong>:</p>
+<ul class="simple">
+<li><p>Decoders are cached by (codec, bitDepth, chromaFormat)</p></li>
+<li><p>LRU eviction when cache is full</p></li>
+<li><p>Significant performance improvement for playlist processing</p></li>
+<li><p>Reduces decoder creation overhead</p></li>
+</ul>
+</li>
+<li><p><strong>Reconfigure same source</strong> (reset state):</p>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="c1">// Reset to beginning of same video (preserves keyframe cache)</span>
+<span class="n">decoder</span><span class="p">.</span><span class="n">ReconfigureDecoder</span><span class="p">(</span><span class="s">&quot;video1.mp4&quot;</span><span class="p">,</span><span class="w"> </span><span class="nb">true</span><span class="p">);</span><span class="w">  </span><span class="c1">// isSameSource = true</span>
+</pre></div>
+</div>
+</li>
+</ol>
+</section>
+<section id="using-appdecvideodecoder-sample-application">
+<h4><span class="section-number">4.7.7. </span>Using AppDecVideoDecoder Sample Application<a class="headerlink" href="#using-appdecvideodecoder-sample-application" title="Link to this heading">#</a></h4>
+<p>The <code class="docutils literal notranslate"><span class="pre">AppDecVideoDecoder</span></code> sample demonstrates all seeking features with a comprehensive command-line interface.</p>
+<p><strong>Important Note:</strong> The <code class="docutils literal notranslate"><span class="pre">-o</span></code> (output file) flag is optional. When not specified, frames are decoded and kept on the GPU without writing to disk, enabling faster decode-only performance measurements.</p>
+<p><strong>Command-Line Options:</strong></p>
+<p><strong>Basic Usage:</strong></p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Decode specific frames by index</span>
+./AppDecVideoDecoder<span class="w"> </span>-i<span class="w"> </span>input.mp4<span class="w"> </span>-framelist<span class="w"> </span><span class="m">0</span>,10,20,30,40
+
+<span class="c1"># Decode frames using range syntax (start:end:step) and save to output file</span>
+./AppDecVideoDecoder<span class="w"> </span>-i<span class="w"> </span>input.mp4<span class="w"> </span>-o<span class="w"> </span>output.yuv<span class="w"> </span>-framelist<span class="w"> </span><span class="m">0</span>:100:10
+
+<span class="c1"># Time-based access</span>
+./AppDecVideoDecoder<span class="w"> </span>-i<span class="w"> </span>input.mp4<span class="w"> </span>-o<span class="w"> </span>output.yuv<span class="w"> </span>-t<span class="w"> </span><span class="m">0</span>:10:2
+
+<span class="c1"># Playlist mode</span>
+./AppDecVideoDecoder<span class="w"> </span>-playlist<span class="w"> </span>playlist.txt
+</pre></div>
+</div>
+<p>Use <code class="docutils literal notranslate"><span class="pre">./AppDecVideoDecoder</span> <span class="pre">--help</span></code> for the complete list of command-line options.</p>
+<p><strong>Playlist File Format:</strong></p>
+<p>Create a text file with key:value pairs (one per line). Empty lines separate videos:</p>
+<div class="highlight-c++ notranslate"><div class="highlight"><pre><span></span><span class="nl">input</span><span class="p">:</span><span class="n">video1</span><span class="p">.</span><span class="n">mp4</span>
+<span class="nl">output</span><span class="p">:</span><span class="n">video1</span><span class="p">.</span><span class="n">yuv</span>
+<span class="nl">stats</span><span class="p">:</span><span class="n">video1</span><span class="p">.</span><span class="n">stats</span>
+<span class="nl">indices</span><span class="p">:</span><span class="mi">0</span><span class="p">,</span><span class="mi">10</span><span class="p">,</span><span class="mi">20</span><span class="p">,</span><span class="mi">30</span><span class="p">,</span><span class="mi">40</span>
+
+<span class="nl">input</span><span class="p">:</span><span class="n">video2</span><span class="p">.</span><span class="n">mp4</span>
+<span class="nl">output</span><span class="p">:</span><span class="n">video2</span><span class="p">.</span><span class="n">yuv</span>
+<span class="nl">stats</span><span class="p">:</span><span class="n">video2</span><span class="p">.</span><span class="n">stats</span>
+<span class="nl">indices</span><span class="p">:</span><span class="mi">20</span><span class="o">:</span><span class="mi">80</span><span class="o">:</span><span class="mi">10</span>
+
+<span class="nl">input</span><span class="p">:</span><span class="n">video3</span><span class="p">.</span><span class="n">mp4</span>
+</pre></div>
+</div>
+<p>Notes:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">input:</span></code> is required (specifies input video file)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">output:</span></code>, <code class="docutils literal notranslate"><span class="pre">stats:</span></code>, and <code class="docutils literal notranslate"><span class="pre">indices:</span></code> are optional</p></li>
+<li><p>Empty lines separate video entries</p></li>
+<li><p>Frame indices support same syntax as <code class="docutils literal notranslate"><span class="pre">-framelist</span></code> (individual indices, ranges, or mixed)</p></li>
+<li><p>Comments start with <code class="docutils literal notranslate"><span class="pre">#</span></code></p></li>
+<li><p>The <code class="docutils literal notranslate"><span class="pre">-dumpstats</span></code> flag is ignored in playlist mode; use <code class="docutils literal notranslate"><span class="pre">stats:</span></code> per video instead</p></li>
+</ul>
+<p><strong>Frame Index Syntax:</strong></p>
+<p>The application supports flexible frame specification:</p>
+<ul class="simple">
+<li><p><strong>Individual indices</strong>: <code class="docutils literal notranslate"><span class="pre">2,3,6,8,99</span></code></p></li>
+<li><p><strong>Range with step</strong>: <code class="docutils literal notranslate"><span class="pre">0:100:2</span></code> (every 2nd frame from 0 to 100, inclusive)</p></li>
+<li><p><strong>Range with default step</strong>: <code class="docutils literal notranslate"><span class="pre">0:100</span></code> (every frame from 0 to 100, step=1)</p></li>
+<li><p><strong>Mixed syntax</strong>: <code class="docutils literal notranslate"><span class="pre">0:10:2,20,30:35,50</span></code></p></li>
+<li><p><strong>Time-based</strong>: <code class="docutils literal notranslate"><span class="pre">-t</span> <span class="pre">1.5,3.0,5.5</span></code> (frames at 1.5s, 3.0s, 5.5s)</p></li>
+<li><p><strong>Time range</strong>: <code class="docutils literal notranslate"><span class="pre">-t</span> <span class="pre">0:10:0.5</span></code> (every 0.5 seconds)</p></li>
+</ul>
+</section>
+</section>
+</section>
+<span id="document-nvdec-direct-output-block-linear"></span><section id="nvdec-direct-output-to-block-linear-cuda-arrays">
+<h2><span class="section-number">5. </span>NVDEC Direct Output to Block-Linear CUDA Arrays<a class="headerlink" href="#nvdec-direct-output-to-block-linear-cuda-arrays" title="Link to this heading">#</a></h2>
+<p>NVDEC can decode video frames directly into externally allocated CUDA arrays in an opaque block-linear memory layout. In the traditional decode path, NVDEC outputs to internal pitch-linear surfaces that must be accessed via <code class="docutils literal notranslate"><span class="pre">cuvidMapVideoFrame()</span></code>/<code class="docutils literal notranslate"><span class="pre">cuvidUnmapVideoFrame()</span></code> — any downstream consumer (encoder, inference, post-processing) then needs a copy to move the data into its own buffer. With opaque output, NVDEC writes decoded pixels directly into application-provided CUDA arrays, bypassing the internal surface pool and the map/copy step entirely.</p>
+<section id="key-advantages">
+<h3><span class="section-number">5.1. </span>Key Advantages<a class="headerlink" href="#key-advantages" title="Link to this heading">#</a></h3>
+<ul class="simple">
+<li><p>Eliminates the pitch-linear to block-linear copy that would otherwise be done by a CUDA kernel on SMs. This frees SM capacity for other parallel workloads (inference, rendering, image processing).</p></li>
+<li><p>Reduces GPU memory bandwidth consumption — no intermediate surface and no redundant data movement.</p></li>
+<li><p>CUDA arrays in block-linear format are the native input format for NVENC and CUDA texture operations, so downstream consumers can use the decoded output directly.</p></li>
+</ul>
+</section>
+<section id="supported-opaque-surface-formats">
+<h3><span class="section-number">5.2. </span>Supported Opaque Surface Formats<a class="headerlink" href="#supported-opaque-surface-formats" title="Link to this heading">#</a></h3>
+<table class="docutils align-default" id="supported-opaque-surface-formats-table">
+<caption><span class="caption-text">Supported Opaque Surface Formats</span><a class="headerlink" href="#supported-opaque-surface-formats-table" title="Link to this table">#</a></caption>
+<thead>
+<tr class="row-odd"><th class="head"><p>Format</p></th>
+<th class="head"><p>Chroma</p></th>
+<th class="head"><p>Bit Depth</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>cudaVideoSurfaceFormat_NV12_Opaque</p></td>
+<td><p>4:2:0</p></td>
+<td><p>8-bit</p></td>
+</tr>
+<tr class="row-odd"><td><p>cudaVideoSurfaceFormat_P016_Opaque</p></td>
+<td><p>4:2:0</p></td>
+<td><p>10/12-bit</p></td>
+</tr>
+<tr class="row-even"><td><p>cudaVideoSurfaceFormat_NV16_Opaque</p></td>
+<td><p>4:2:2</p></td>
+<td><p>8-bit</p></td>
+</tr>
+<tr class="row-odd"><td><p>cudaVideoSurfaceFormat_P216_Opaque</p></td>
+<td><p>4:2:2</p></td>
+<td><p>10/12-bit</p></td>
+</tr>
+<tr class="row-even"><td><p>cudaVideoSurfaceFormat_YUV444_Opaque</p></td>
+<td><p>4:4:4</p></td>
+<td><p>8-bit</p></td>
+</tr>
+<tr class="row-odd"><td><p>cudaVideoSurfaceFormat_YUV444_16Bit_Opaque</p></td>
+<td><p>4:4:4</p></td>
+<td><p>10/12-bit</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="step-by-step-usage">
+<h3><span class="section-number">5.3. </span>Step-by-Step Usage<a class="headerlink" href="#step-by-step-usage" title="Link to this heading">#</a></h3>
+<ol class="arabic simple">
+<li><p>Allocate a pool of <code class="docutils literal notranslate"><span class="pre">CUarray</span></code> handles to serve as the decoder’s output surfaces, sized for the codec’s DPB requirements plus headroom.</p></li>
+<li><p>Create the decoder with <code class="docutils literal notranslate"><span class="pre">OutputFormat</span></code> set to an <code class="docutils literal notranslate"><span class="pre">_Opaque</span></code> variant and <code class="docutils literal notranslate"><span class="pre">ulNumOutputSurfaces</span> <span class="pre">=</span> <span class="pre">0</span></code>.</p></li>
+<li><p>Register the CUDA arrays with the decoder by calling <code class="docutils literal notranslate"><span class="pre">cuvidRegisterDecodeSurfaces()</span></code> after <code class="docutils literal notranslate"><span class="pre">cuvidCreateDecoder()</span></code>.</p></li>
+<li><p>Decode using <code class="docutils literal notranslate"><span class="pre">cuvidDecodePictureAsync()</span></code> instead of <code class="docutils literal notranslate"><span class="pre">cuvidDecodePicture()</span></code>, passing a <code class="docutils literal notranslate"><span class="pre">CUstream</span></code> for stream-ordered synchronization.</p></li>
+<li><p>Consume the decoded CUDA array directly — no <code class="docutils literal notranslate"><span class="pre">cuvidMapVideoFrame()</span></code>/<code class="docutils literal notranslate"><span class="pre">cuvidUnmapVideoFrame()</span></code> needed; the frame is already in the registered <code class="docutils literal notranslate"><span class="pre">CUarray</span></code>.</p></li>
+</ol>
+</section>
+<section id="reference-traditional-vs-opaque-data-flow">
+<h3><span class="section-number">5.4. </span>Reference: Traditional vs Opaque Data Flow<a class="headerlink" href="#reference-traditional-vs-opaque-data-flow" title="Link to this heading">#</a></h3>
+<p><strong>Traditional (pitch-linear):</strong></p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>cuvidCreateDecoder(OutputFormat = NV12, ulNumOutputSurfaces = 2)
+cuvidDecodePicture(N)
+cuvidMapVideoFrame(N)    → CUdeviceptr + pitch
+  copy to consumer buffer (SM kernel)
+cuvidUnmapVideoFrame(N)
+</pre></div>
+</div>
+<p><strong>Opaque (block-linear):</strong></p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>cuvidCreateDecoder(OutputFormat = NV12_Opaque, ulNumOutputSurfaces = 0)
+cuvidRegisterDecodeSurfaces(CUarray pool)
+cuvidDecodePictureAsync(N, cudaStream)  → frame is directly in CUarray, ready for consumption.
+</pre></div>
+</div>
+<p class="rubric-h1 rubric">Notices</p>
+<p class="rubric-h2 rubric">Notice</p>
+<p>This document is provided for information purposes only and shall not be regarded as a warranty of a certain functionality, condition, or quality of a product. NVIDIA Corporation (“NVIDIA”) makes no representations or warranties, expressed or implied, as to the accuracy or completeness of the information contained in this document and assumes no responsibility for any errors contained herein. NVIDIA shall have no liability for the consequences or use of such information or for any infringement of patents or other rights of third parties that may result from its use. This document is not a commitment to develop, release, or deliver any Material (defined below), code, or functionality.</p>
+<p>NVIDIA reserves the right to make corrections, modifications, enhancements, improvements, and any other changes to this document, at any time without notice.</p>
+<p>Customer should obtain the latest relevant information before placing orders and should verify that such information is current and complete.</p>
+<p>NVIDIA products are sold subject to the NVIDIA standard terms and conditions of sale supplied at the time of order acknowledgment, unless otherwise agreed in an individual sales agreement signed by authorized representatives of NVIDIA and customer (“Terms of Sale”). NVIDIA hereby expressly objects to applying any customer general terms and conditions with regards to the purchase of the NVIDIA product referenced in this document. No contractual obligations are formed either directly or indirectly by this document.</p>
+<p>NVIDIA products are not designed, authorized, or warranted to be suitable for use in medical, military, aircraft, space, or life support equipment, nor in applications where failure or malfunction of the NVIDIA product can reasonably be expected to result in personal injury, death, or property or environmental damage. NVIDIA accepts no liability for inclusion and/or use of NVIDIA products in such equipment or applications and therefore such inclusion and/or use is at customer’s own risk.</p>
+<p>NVIDIA makes no representation or warranty that products based on this document will be suitable for any specified use. Testing of all parameters of each product is not necessarily performed by NVIDIA. It is customer’s sole responsibility to evaluate and determine the applicability of any information contained in this document, ensure the product is suitable and fit for the application planned by customer, and perform the necessary testing for the application in order to avoid a default of the application or the product. Weaknesses in customer’s product designs may affect the quality and reliability of the NVIDIA product and may result in additional or different conditions and/or requirements beyond those contained in this document. NVIDIA accepts no liability related to any default, damage, costs, or problem which may be based on or attributable to: (i) the use of the NVIDIA product in any manner that is contrary to this document or (ii) customer product designs.</p>
+<p class="rubric-h2 rubric">Trademarks</p>
+<p>NVIDIA, the NVIDIA logo, and cuBLAS, CUDA, CUDA Toolkit, cuDNN, DALI, DIGITS, DGX, DGX-1, DGX-2, DGX Station, DLProf, GPU, Jetson, Kepler, Maxwell, NCCL, Nsight Compute, Nsight Systems, NVCaffe, NVIDIA Deep Learning SDK, NVIDIA Developer Program, NVIDIA GPU Cloud, NVLink, NVSHMEM, PerfWorks, Pascal, SDK Manager, Tegra, TensorRT, TensorRT Inference Server, Tesla, TF-TRT, Triton Inference Server, Turing, and Volta are trademarks and/or registered trademarks of NVIDIA Corporation in the United States and other countries. Other company and product names may be trademarks of the respective companies with which they are associated.</p>
+</section>
+</section>
+</div>
+</section>\n</article>
+</body>
+</html>

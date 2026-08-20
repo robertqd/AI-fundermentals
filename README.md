@@ -19,6 +19,7 @@
 
 - **基础计算芯片架构**
   - [深入理解 GPU 架构](./01_hardware_architecture/nvidia/understand_gpu_architecture/README.md)
+  - [NVIDIA 硬件解码流程：从 NVDEC 到 AI 推理输入](./01_hardware_architecture/nvidia/video_codec/README.md)
   - [TPU 101：深度学习专用加速器架构解析](./01_hardware_architecture/tpu/tpu%20101.md)
   - [GPGPU vs NPU：大模型推理训练对比](./01_hardware_architecture/nvidia/GPGPU_vs_NPU_大模型推理训练对比.md)
 - **高速互连与数据传输技术**
