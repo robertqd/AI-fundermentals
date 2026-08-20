@@ -42,7 +42,7 @@ TPU 是 Google 为深度学习量身打造的另一条路径。它的核心思�
 
 训练集群回答的是「模型怎么长出来」，边缘网关回答的是「Agent 在现场怎么把活干完」。当数据不能出域、现场没有专职运维、负载是 7×24 小时的工具调用而不是千卡训练时，算力会收敛成一颗高能效异构 SoC 加上出厂镜像，而不是再搬一张数据中心 GPU。
 
-- **[Agentic Box 介绍：开箱即用的边缘智能体网关](edge/agentic-box-intro.md)**：此芯 AGX 矩阵中的边端形态，把 Agentic SoC P1、本地模型、沙箱与审计打成单盒网关，并对照云端 GPU 与 Agent Sandbox 说明它适合什么、不该被当成什么。
+- **[Agentic Box 介绍：开箱即用的边缘智能体网关](edge/agentic-box-intro.md)**（[配套 PPT](edge/agentic-box-intro.pptx) · [资料下载](edge/downloads.md)）：此芯 AGX 矩阵中的边端形态，把 Agentic SoC P1、本地模型、沙箱与审计打成单盒网关，并对照云端 GPU 与 Agent Sandbox 说明它适合什么、不该被当成什么。
 
 ---
 

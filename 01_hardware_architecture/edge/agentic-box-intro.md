@@ -1,6 +1,8 @@
 # Agentic Box 介绍：开箱即用的边缘智能体网关
 
 > **定位**：Agentic Box 不是又一块加速卡，也不是云端 Agent Sandbox 的另一种叫法。它是此芯科技（CIX）在 **AGX Agentic Compute** 产品矩阵里给出的边端形态——一台预装芯片、模型和智能体运行时的「单盒式」网关，目标是让 Agent 在本地把任务跑完，而不是把数据和 Token 全部送上云。
+>
+> **下载**：[配套 PPT](./agentic-box-intro.pptx) · [资料下载清单](./downloads.md)（官方 SDK / BSP / TRM 入口；芯片手册需注册，不进仓库）
 
 本文把 Agentic Box 放到本仓库的硬件与智能体基础设施两条线上来看：它解决的是「Agent 跑在哪、数据出不出域、能否 7×24 小时持续执行」的部署问题，而不是「Agent 怎么思考」的算法问题。阅读时可以对照 [GPGPU vs NPU](../nvidia/GPGPU_vs_NPU_大模型推理训练对比.md) 理解边端异构算力，对照 [Agent Sandbox 设计范式](../../08_agentic_system/agent_infra/docs/agent-sandbox-design.md) 理解软件隔离与硬件盒子的分工。
 
@@ -178,7 +180,27 @@ AGX OS 把智能体落地的三个真实风险写进了产品定义 [3]：
 | AI NAS | 来酷等 | 6 盘位、ZFS、ECC；影像 / 家居数据作为家庭级私有存算中心 |
 | 开发板 / 准系统 | Radxa Orion O6、Orange Pi 6 Plus、P1 EVB | 用来自研盒子固件，而不是开箱即用网关 |
 
-开发者软件入口在 [CIX Developer Center](https://developer.cixtech.com/)：BSP、NeuralONE、AI Model Hub、Ubuntu / Debian 镜像。
+开发者软件入口在 [CIX Developer Center](https://developer.cixtech.com/)：BSP、NeuralONE、AI Model Hub、Ubuntu / Debian 镜像。完整下载清单见 [资料下载](./downloads.md)。
+
+公开新闻里能直接看到三种常见盒子：
+
+![数字员工单盒（铭凡 MS-R1）](./assets/minisforum-ms-r1.jpg)
+
+![WAIC 2026：AGX Station 桌面超算](./assets/waic-agx-station.jpg)
+
+![WAIC 2026：联想 AI 主机 mini](./assets/waic-lenovo-mini.jpg)
+
+行业方案把同一只盒子切成「一盒六角色」。金融侧覆盖监管报表、银企对账、发票稽核、信贷辅助、反洗钱调查和柜面助手：
+
+![金融数字员工：一盒六角色](./assets/finance-six-roles.jpg)
+
+政务侧则是公文审校、审批材料、数据汇总、信访分拣、档案管理和热线分析：
+
+![政务数字员工：一盒六角色](./assets/gov-six-roles.jpg)
+
+发票验真是已经对外讲过的单点案例——OCR 对接国税验真平台，公开口径日均 400+ 张、响应不超过 30 秒、7×24 运行：
+
+![发票验真流程自动化](./assets/invoice-automation.jpg)
 
 ---
 
@@ -240,6 +262,14 @@ Agentic Box 要记住的只有四条：
 4. 它在 AGX 矩阵里站在 Station（可扩展超算）和 Infra（阵列服务器）之间，专门覆盖家庭、中小企业与行业网点。
 
 对架构师而言，引入 Agentic Box 之前先把「哪些 Token 必须本地、哪些可以上云、密钥绝不能进模型上下文」画清楚。盒子解决的是部署与主权，解决不了提示注入和工具过权——那些仍然要靠沙箱策略和审计闭环。
+
+---
+
+## 11. 资料下载
+
+- 本仓库：[配套 PPT](./agentic-box-intro.pptx)、[下载清单](./downloads.md)
+- 官方 SDK / BSP / NeuralONE：https://developer.cixtech.com/
+- 芯片手册 TRM 需注册审核，合计约九千页，不进本仓库
 
 ---
 

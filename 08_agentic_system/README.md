@@ -88,7 +88,7 @@ Agent Infra 是「让 Agent 能真正可靠运行、能操作真实世界、能�
 - [AI Agent 基础设施的崛起](./agent_infra/docs/the-rise-of-ai-agent-infrastructure.md) - 分析基础设施生态的演进趋势、核心玩家与未来投资方向。
 - [OpenHarness 深入浅出：解密开源智能体基础设施](./agent_infra/docs/openharness-deep-dive.md) ([配套 PPT](./agent_infra/docs/openharness-deep-dive.pptx)) - 大型语言模型 (LLM) 在推理与生成能力上取得了突破性进展，但它们本身受限于静态的上下文窗口，无法直接与真实世界进行交互。要让模型成为能够自主解决复杂任务的工程化智能体 (Agent) ，必须为其配备执行动作的工具、持久化的记忆以及安全隔离的运行边界。这就是“智能体基础设施” (Agent Harness) 的核心使命。
 - [Agent Sandbox 的演进与设计范式](./agent_infra/docs/agent-sandbox-design.md) ([配套 PPT](./agent_infra/docs/agent-sandbox-design.pptx)) - 探讨 Agent Sandbox 的核心设计理念，对比 OpenShell、Sandlock 等沙箱方案，揭示从“硬件级隔离”向“策略优先”演进的技术趋势。
-- [Agentic Box 介绍：开箱即用的边缘智能体网关](../01_hardware_architecture/edge/agentic-box-intro.md) - 此芯 AGX 矩阵中的边端硬件形态：把 Agentic SoC、本地模型、沙箱与审计打成单盒网关，作为 Agent Infra 在现场的常驻「手脚」，与进程级 Sandbox、云端 Harness 互补。
+- [Agentic Box 介绍：开箱即用的边缘智能体网关](../01_hardware_architecture/edge/agentic-box-intro.md)（[配套 PPT](../01_hardware_architecture/edge/agentic-box-intro.pptx) · [资料下载](../01_hardware_architecture/edge/downloads.md)） - 此芯 AGX 矩阵中的边端硬件形态：把 Agentic SoC、本地模型、沙箱与审计打成单盒网关，作为 Agent Infra 在现场的常驻「手脚」，与进程级 Sandbox、云端 Harness 互补。
 - [深度解析 Kagent：以构建 Kubernetes 运维智能体为例](./agent_infra/docs/deep-dive-kagent-k8s-ops-agent.md) ([配套 PPT](./agent_infra/docs/deep-dive-kagent-k8s-ops-agent.pptx)) - 深度解析 Kagent 的核心架构与工作机制，并以“构建阿里云 ACK 运维智能体”为实战案例，展示大模型与运维工具的编排。
 - [云原生 AI Agent 基础设施：OpenClaw Operator 架构深度解析](./agent_infra/docs/openclaw-operator-deep-dive.md) - 深入探讨 OpenClaw Kubernetes Operator 的核心架构设计与工程实践，涵盖从 Server-Side Apply 的冲突解决到 StatefulSet 的持久化绑定，以及容器级软隔离与进程级沙箱的安全边界设计。
 - [Claude Code Sandbox 安全隔离机制解析](./agent_infra/docs/claude-code-sandbox.md) - 从 Claude Code 的实际运行环境切入，系统性地探讨其面临的安全挑战及核心防护边界，深度剖析基于 Bubblewrap 的底层隔离架构与工程实现。
