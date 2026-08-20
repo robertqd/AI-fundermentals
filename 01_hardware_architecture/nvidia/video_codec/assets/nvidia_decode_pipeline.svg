@@ -33,29 +33,25 @@
     <marker id="arrowGray" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
       <polygon points="0 0, 8 3, 0 6" fill="#6b7280"/>
     </marker>
-    <marker id="arrowWhite" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
-      <polygon points="0 0, 8 3, 0 6" fill="#e2e8f0"/>
-    </marker>
   </defs>
 
   <rect width="1480" height="980" fill="#f0f4f8"/>
 
   <rect x="20" y="12" width="1440" height="58" rx="6" fill="url(#titleGrad)"/>
-  <text x="740" y="38" text-anchor="middle" fill="white" font-size="20" font-weight="bold">NVIDIA lˆ„ANVDEC Pipeline	</text>
-  <text x="740" y="56" text-anchor="middle" fill="#bfdbfe" font-size="13">Demux í Parse í NVDEC Decode í Map / Post-process í CUDA / AI / NVENC</text>
+  <text x="740" y="38" text-anchor="middle" fill="white" font-size="20" font-weight="bold">NVIDIA Hardware Decode Pipeline (NVDEC)</text>
+  <text x="740" y="56" text-anchor="middle" fill="#bfdbfe" font-size="13">Demux - Parse - NVDEC Decode - Map / Post-process - CUDA / AI / NVENC</text>
 
-  <!-- ===== Section 1: Host software pipeline ===== -->
   <rect x="20" y="86" width="1440" height="250" rx="8" fill="white" stroke="#2563eb" stroke-width="2"/>
   <rect x="20" y="86" width="1440" height="32" rx="6" fill="#2563eb"/>
-  <text x="740" y="108" text-anchor="middle" fill="white" font-size="14" font-weight="bold">1. ;:ßoˆA4øCPU / q®	</text>
+  <text x="740" y="108" text-anchor="middle" fill="white" font-size="14" font-weight="bold">1. Host Software Pipeline (CPU / Driver)</text>
 
   <rect x="48" y="140" width="180" height="72" rx="6" fill="url(#hostGrad)"/>
-  <text x="138" y="168" text-anchor="middle" fill="white" font-size="13" font-weight="bold">πh / Aê</text>
+  <text x="138" y="168" text-anchor="middle" fill="white" font-size="13" font-weight="bold">Container / Source</text>
   <text x="138" y="188" text-anchor="middle" fill="#93c5fd" font-size="11">MP4 / MKV / RTSP</text>
 
   <rect x="288" y="140" width="180" height="72" rx="6" fill="#dbeafe" stroke="#1d4ed8"/>
   <text x="378" y="168" text-anchor="middle" fill="#1e3a8a" font-size="13" font-weight="bold">Demuxer</text>
-  <text x="378" y="188" text-anchor="middle" fill="#1e40af" font-size="11">FFmpeg / ,	π</text>
+  <text x="378" y="188" text-anchor="middle" fill="#1e40af" font-size="11">FFmpeg / 3rd-party</text>
 
   <rect x="528" y="140" width="200" height="72" rx="6" fill="#dbeafe" stroke="#1d4ed8"/>
   <text x="628" y="168" text-anchor="middle" fill="#1e3a8a" font-size="13" font-weight="bold">Video Parser</text>
@@ -67,8 +63,7 @@
   <text x="898" y="196" text-anchor="middle" fill="#9a3412" font-size="11">cuvidMapVideoFrame</text>
 
   <rect x="1070" y="140" width="350" height="72" rx="6" fill="#ede9fe" stroke="#6d28d9"/>
-  <text x="1245" y="162" text-anchor="middle" fill="#5b21b6" font-size="13" font-weight="bold">
-BF∂</text>
+  <text x="1245" y="162" text-anchor="middle" fill="#5b21b6" font-size="13" font-weight="bold">Frameworks</text>
   <text x="1245" y="186" text-anchor="middle" fill="#6d28d9" font-size="11">DALI / DeepStream / PyNvVideoCodec / FFmpeg</text>
 
   <path d="M228,176 L288,176" stroke="#2563eb" stroke-width="2" marker-end="url(#arrowBlue)"/>
@@ -76,9 +71,8 @@ BF∂</text>
   <path d="M728,176 L788,176" stroke="#2563eb" stroke-width="2" marker-end="url(#arrowBlue)"/>
   <path d="M1008,176 L1070,176" stroke="#6d28d9" stroke-width="2" marker-end="url(#arrowGray)"/>
 
-  <!-- callbacks -->
-  <rect x="48" y="232" width="1440" height="84" rx="5" fill="#eff6ff"/>
-  <text x="68" y="256" fill="#1e3a8a" font-size="12" font-weight="bold">Parser ﬁe—( cuvidParseVideoData ÖË	</text>
+  <rect x="48" y="232" width="1392" height="84" rx="5" fill="#eff6ff"/>
+  <text x="68" y="256" fill="#1e3a8a" font-size="12" font-weight="bold">Parser callbacks (synchronous inside cuvidParseVideoData)</text>
   <rect x="68" y="268" width="250" height="34" rx="4" fill="white" stroke="#3b82f6"/>
   <text x="193" y="289" text-anchor="middle" fill="#1e40af" font-size="11">pfnSequenceCallback</text>
   <rect x="338" y="268" width="250" height="34" rx="4" fill="white" stroke="#3b82f6"/>
@@ -87,38 +81,35 @@ BF∂</text>
   <text x="733" y="289" text-anchor="middle" fill="#1e40af" font-size="11">pfnDisplayPicture</text>
   <rect x="878" y="268" width="270" height="34" rx="4" fill="white" stroke="#3b82f6"/>
   <text x="1013" y="289" text-anchor="middle" fill="#1e40af" font-size="11">pfnGetSEIMsg / OperatingPoint</text>
-  <text x="1280" y="289" fill="#334155" font-size="11">q®ÖË„¶ 4 '</text>
+  <text x="1280" y="289" fill="#334155" font-size="11">Driver queue: ~4 frames</text>
 
-  <!-- ===== Section 2: GPU engines ===== -->
   <rect x="20" y="354" width="1440" height="360" rx="8" fill="white" stroke="#16a34a" stroke-width="2"/>
   <rect x="20" y="354" width="1440" height="32" rx="6" fill="#16a34a"/>
-  <text x="740" y="376" text-anchor="middle" fill="white" font-size="14" font-weight="bold">2. GPU G
-Œ>XÔÑ CUDA Core / Tensor Core ÏÀ	</text>
+  <text x="740" y="376" text-anchor="middle" fill="white" font-size="14" font-weight="bold">2. On-chip Engines and Memory Path (independent of CUDA / Tensor Cores)</text>
 
-  <!-- GPU box -->
   <rect x="48" y="406" width="1384" height="286" rx="8" fill="url(#gpuGrad)"/>
   <text x="80" y="432" fill="#86efac" font-size="13" font-weight="bold">NVIDIA GPU</text>
 
   <rect x="72" y="448" width="200" height="90" rx="6" fill="#14532d" stroke="#86efac"/>
   <text x="172" y="478" text-anchor="middle" fill="white" font-size="12" font-weight="bold">Bitstream Buffer</text>
-  <text x="172" y="498" text-anchor="middle" fill="#bbf7d0" font-size="11">ã)AH.264 / HEVC</text>
-  <text x="172" y="516" text-anchor="middle" fill="#bbf7d0" font-size="11">/ VP9 / AV1 &	</text>
+  <text x="172" y="498" text-anchor="middle" fill="#bbf7d0" font-size="11">Compressed stream</text>
+  <text x="172" y="516" text-anchor="middle" fill="#bbf7d0" font-size="11">H.264 / HEVC / VP9 / AV1</text>
 
   <rect x="340" y="438" width="250" height="110" rx="6" fill="url(#nvdecGrad)" stroke="#fdba74" stroke-width="2"/>
   <text x="465" y="468" text-anchor="middle" fill="white" font-size="14" font-weight="bold">NVDEC</text>
-  <text x="465" y="488" text-anchor="middle" fill="#fed7aa" font-size="11">˙öü˝∆ë„Œ</text>
-  <text x="465" y="508" text-anchor="middle" fill="#fed7aa" font-size="11">µ„ / Õœ / –®e</text>
-  <text x="465" y="528" text-anchor="middle" fill="#fed7aa" font-size="11">A100◊5 ∑ H100◊7 ∑ B200◊7</text>
+  <text x="465" y="488" text-anchor="middle" fill="#fed7aa" font-size="11">Fixed-function video decoder</text>
+  <text x="465" y="508" text-anchor="middle" fill="#fed7aa" font-size="11">Entropy / IQ / motion compensation</text>
+  <text x="465" y="528" text-anchor="middle" fill="#fed7aa" font-size="11">A100 x5  H100 x7  B200 x7</text>
 
   <rect x="660" y="448" width="220" height="90" rx="6" fill="#14532d" stroke="#86efac"/>
   <text x="770" y="478" text-anchor="middle" fill="white" font-size="12" font-weight="bold">Decode Surfaces</text>
-  <text x="770" y="498" text-anchor="middle" fill="#bbf7d0" font-size="11">DPB / ¬'≤</text>
-  <text x="770" y="516" text-anchor="middle" fill="#bbf7d0" font-size="11">î(ÔÙ•øÓ</text>
+  <text x="770" y="498" text-anchor="middle" fill="#bbf7d0" font-size="11">DPB / reference frames</text>
+  <text x="770" y="516" text-anchor="middle" fill="#bbf7d0" font-size="11">Not app-accessible</text>
 
   <rect x="950" y="438" width="230" height="110" rx="6" fill="#92400e" stroke="#fdba74"/>
-  <text x="1065" y="468" text-anchor="middle" fill="white" font-size="12" font-weight="bold">Map / VIC </text>
-  <text x="1065" y="488" text-anchor="middle" fill="#fed7aa" font-size="11">)> / ¡j / ªîL</text>
-  <text x="1065" y="508" text-anchor="middle" fill="#fed7aa" font-size="11">rizÙ / <lb</text>
+  <text x="1065" y="468" text-anchor="middle" fill="white" font-size="12" font-weight="bold">Map / Post-process</text>
+  <text x="1065" y="488" text-anchor="middle" fill="#fed7aa" font-size="11">Scale / crop / deinterlace</text>
+  <text x="1065" y="508" text-anchor="middle" fill="#fed7aa" font-size="11">Color convert / format</text>
   <text x="1065" y="528" text-anchor="middle" fill="#fed7aa" font-size="11">NV12 / P016 / YUV444</text>
 
   <rect x="1248" y="448" width="160" height="90" rx="6" fill="#14532d" stroke="#86efac"/>
@@ -131,57 +122,55 @@ BF∂</text>
   <path d="M880,493 L950,493" stroke="#fdba74" stroke-width="2.5" marker-end="url(#arrowOrange)"/>
   <path d="M1180,493 L1248,493" stroke="#86efac" stroke-width="2.5" marker-end="url(#arrowGreen)"/>
 
-  <!-- other engines -->
   <rect x="72" y="568" width="200" height="70" rx="6" fill="url(#cudaGrad)"/>
   <text x="172" y="596" text-anchor="middle" fill="white" font-size="12" font-weight="bold">NVJPEG / NVJPG</text>
-  <text x="172" y="616" text-anchor="middle" fill="#c7d2fe" font-size="11">JPEG ˛œlˆ„</text>
+  <text x="172" y="616" text-anchor="middle" fill="#c7d2fe" font-size="11">JPEG image decode</text>
 
   <rect x="340" y="568" width="250" height="70" rx="6" fill="url(#cudaGrad)"/>
-  <text x="465" y="596" text-anchor="middle" fill="white" font-size="12" font-weight="bold">CUDA Core / Tensor Core</text>
-  <text x="465" y="616" text-anchor="middle" fill="#c7d2fe" font-size="11">Normalize / ∆… Encoder</text>
+  <text x="465" y="596" text-anchor="middle" fill="white" font-size="12" font-weight="bold">CUDA / Tensor Core</text>
+  <text x="465" y="616" text-anchor="middle" fill="#c7d2fe" font-size="11">Normalize / vision encoder</text>
 
   <rect x="660" y="568" width="220" height="70" rx="6" fill="#7c2d12" stroke="#fdba74"/>
   <text x="770" y="596" text-anchor="middle" fill="white" font-size="12" font-weight="bold">NVENC</text>
-  <text x="770" y="616" text-anchor="middle" fill="#fed7aa" font-size="11">lˆ / l</text>
+  <text x="770" y="616" text-anchor="middle" fill="#fed7aa" font-size="11">Hardware encode / transcode</text>
 
   <rect x="950" y="568" width="230" height="70" rx="6" fill="url(#cudaGrad)"/>
   <text x="1065" y="596" text-anchor="middle" fill="white" font-size="12" font-weight="bold">HBM / GDDR</text>
-  <text x="1065" y="616" text-anchor="middle" fill="#c7d2fe" font-size="11">'≤{Y(>X</text>
+  <text x="1065" y="616" text-anchor="middle" fill="#c7d2fe" font-size="11">Frames stay in device memory</text>
 
-  <text x="1248" y="598" fill="#bbf7d0" font-size="11">ˆ˜ÔÑ</text>
-  <text x="1248" y="616" fill="#bbf7d0" font-size="11">NVDEC ô˙ í CUDA</text>
-  <text x="1248" y="634" fill="#bbf7d0" font-size="11"> NVENC Ù•˚÷</text>
+  <text x="1248" y="598" fill="#bbf7d0" font-size="11">Zero-copy path:</text>
+  <text x="1248" y="616" fill="#bbf7d0" font-size="11">NVDEC writes, CUDA</text>
+  <text x="1248" y="634" fill="#bbf7d0" font-size="11">or NVENC reads</text>
 
-  <!-- ===== Section 3: consumers ===== -->
   <rect x="20" y="732" width="1440" height="228" rx="8" fill="white" stroke="#7c3aed" stroke-width="2"/>
   <rect x="20" y="732" width="1440" height="32" rx="6" fill="#7c3aed"/>
-  <text x="740" y="754" text-anchor="middle" fill="white" font-size="14" font-weight="bold">3. „ì˙à9ÔÑAI ®/;:oK 	</text>
+  <text x="740" y="754" text-anchor="middle" fill="white" font-size="14" font-weight="bold">3. Consumers of Decoded Frames (AI inference is a primary path)</text>
 
   <rect x="48" y="788" width="320" height="140" rx="8" fill="#f5f3ff" stroke="#7c3aed"/>
-  <text x="208" y="818" text-anchor="middle" fill="#5b21b6" font-size="14" font-weight="bold">!®</text>
-  <text x="208" y="842" text-anchor="middle" fill="#6d28d9" font-size="12">YUV í RGB Tensor</text>
+  <text x="208" y="818" text-anchor="middle" fill="#5b21b6" font-size="14" font-weight="bold">Multimodal Inference</text>
+  <text x="208" y="842" text-anchor="middle" fill="#6d28d9" font-size="12">YUV to RGB Tensor</text>
   <text x="208" y="862" text-anchor="middle" fill="#6d28d9" font-size="12">ViT / VLM Encoder</text>
   <text x="208" y="882" text-anchor="middle" fill="#6d28d9" font-size="12">vLLM / TensorRT-LLM</text>
-  <text x="208" y="906" text-anchor="middle" fill="#334155" font-size="11">M CPU „ + H2D ˜</text>
+  <text x="208" y="906" text-anchor="middle" fill="#334155" font-size="11">Avoid CPU decode + H2D copy</text>
 
   <rect x="400" y="788" width="320" height="140" rx="8" fill="#ecfdf5" stroke="#059669"/>
-  <text x="560" y="818" text-anchor="middle" fill="#065f46" font-size="14" font-weight="bold">≠√pn†}</text>
+  <text x="560" y="818" text-anchor="middle" fill="#065f46" font-size="14" font-weight="bold">Training Data Loading</text>
   <text x="560" y="842" text-anchor="middle" fill="#047857" font-size="12">NVIDIA DALI mixed decoder</text>
   <text x="560" y="862" text-anchor="middle" fill="#047857" font-size="12">Resize / Crop / Normalize</text>
-  <text x="560" y="882" text-anchor="middle" fill="#047857" font-size="12"> GPU ≠√A4Õ‡</text>
-  <text x="560" y="906" text-anchor="middle" fill="#334155" font-size="11"> > CPU Ÿ DataLoader / I/O</text>
+  <text x="560" y="882" text-anchor="middle" fill="#047857" font-size="12">Overlap with GPU training</text>
+  <text x="560" y="906" text-anchor="middle" fill="#334155" font-size="11">Free CPU for DataLoader / I/O</text>
 
   <rect x="752" y="788" width="320" height="140" rx="8" fill="#fff7ed" stroke="#ea580c"/>
-  <text x="912" y="818" text-anchor="middle" fill="#9a3412" font-size="14" font-weight="bold">l / Ù≠</text>
+  <text x="912" y="818" text-anchor="middle" fill="#9a3412" font-size="14" font-weight="bold">Transcode / Live</text>
   <text x="912" y="842" text-anchor="middle" fill="#c2410c" font-size="12">Zero-Copy Transcode</text>
-  <text x="912" y="862" text-anchor="middle" fill="#c2410c" font-size="12">NVDEC ƒ q´ CUarray ƒ NVENC</text>
+  <text x="912" y="862" text-anchor="middle" fill="#c2410c" font-size="12">NVDEC shared CUarray NVENC</text>
   <text x="912" y="882" text-anchor="middle" fill="#c2410c" font-size="12">Video Codec SDK 13.1+</text>
-  <text x="912" y="906" text-anchor="middle" fill="#334155" font-size="11"> CUDA Stream ›è</text>
+  <text x="912" y="906" text-anchor="middle" fill="#334155" font-size="11">Same CUDA stream for ordering</text>
 
   <rect x="1104" y="788" width="320" height="140" rx="8" fill="#eff6ff" stroke="#2563eb"/>
-  <text x="1264" y="818" text-anchor="middle" fill="#1e3a8a" font-size="14" font-weight="bold">>: / ﬁ></text>
-  <text x="1264" y="842" text-anchor="middle" fill="#1d4ed8" font-size="12">YUV í RGBA</text>
+  <text x="1264" y="818" text-anchor="middle" fill="#1e3a8a" font-size="14" font-weight="bold">Display / Playback</text>
+  <text x="1264" y="842" text-anchor="middle" fill="#1d4ed8" font-size="12">YUV to RGBA</text>
   <text x="1264" y="862" text-anchor="middle" fill="#1d4ed8" font-size="12">OpenGL / Vulkan / DirectX</text>
   <text x="1264" y="882" text-anchor="middle" fill="#1d4ed8" font-size="12">Graphics Interop</text>
-  <text x="1264" y="906" text-anchor="middle" fill="#334155" font-size="11">ë8 / VDI / ﬁ>h</text>
+  <text x="1264" y="906" text-anchor="middle" fill="#334155" font-size="11">Cloud gaming / VDI / player</text>
 </svg>
