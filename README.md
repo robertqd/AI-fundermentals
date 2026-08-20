@@ -15,12 +15,13 @@
 
 ## 1. 硬件架构与互连技术
 
-涵盖单机基础计算芯片（GPU、TPU）设计原理，PCIe、NVLink 高速互连总线协议，GPUDirect 跨节点直通技术，以及 NVIDIA GB300 NVL72 等异构融合超级芯片的系统级架构与延迟金字塔模型。详细内容请访问：**[硬件架构与互连技术](01_hardware_architecture/README.md)**。
+涵盖单机基础计算芯片（GPU、TPU）设计原理，PCIe、NVLink 高速互连总线协议，GPUDirect 跨节点直通技术，NVIDIA GB300 NVL72 等异构融合超级芯片的系统级架构与延迟金字塔模型，以及边端 Agentic Box 智能体网关。详细内容请访问：**[硬件架构与互连技术](01_hardware_architecture/README.md)**。
 
 - **基础计算芯片架构**
   - [深入理解 GPU 架构](./01_hardware_architecture/nvidia/understand_gpu_architecture/README.md)
   - [TPU 101：深度学习专用加速器架构解析](./01_hardware_architecture/tpu/tpu%20101.md)
   - [GPGPU vs NPU：大模型推理训练对比](./01_hardware_architecture/nvidia/GPGPU_vs_NPU_大模型推理训练对比.md)
+  - [Agentic Box 介绍：开箱即用的边缘智能体网关](./01_hardware_architecture/edge/agentic-box-intro.md)
 - **高速互连与数据传输技术**
   - [PCIe 总线技术大全](./01_hardware_architecture/pcie/01_pcie_comprehensive_guide.md)
   - [Linux PCIe P2PDMA 技术介绍](./01_hardware_architecture/pcie/02_p2pdma_technology.md)
@@ -516,7 +517,7 @@ DeepSeek 模型极致性能优化实战，深度解析 vLLM 宽端点 (Wide Endp
 
 ### 10.2 核心工程组件与基础设施
 
-解构构建高可靠 Agent 的底层支撑体系，涵盖动态上下文组装与压缩工程、Claude/Mem0 记忆架构机制、MCP 工具互操作协议规范，以及 Agent Sandbox 与 Kubernetes 运维智能体基础设施演进。
+解构构建高可靠 Agent 的底层支撑体系，涵盖动态上下文组装与压缩工程、Claude/Mem0 记忆架构机制、MCP 工具互操作协议规范，以及 Agent Sandbox、边端 Agentic Box 与 Kubernetes 运维智能体基础设施演进。
 
 **上下文与记忆系统**：
 
@@ -545,6 +546,7 @@ DeepSeek 模型极致性能优化实战，深度解析 vLLM 宽端点 (Wide Endp
 - [基础设施的崛起](08_agentic_system/agent_infra/docs/the-rise-of-ai-agent-infrastructure.md) - 生态演进趋势与未来投资方向
 - [OpenHarness 深入浅出：解密开源智能体基础设施](08_agentic_system/agent_infra/docs/openharness-deep-dive.md) ([配套 PPT](08_agentic_system/agent_infra/docs/openharness-deep-dive.pptx)) - 大型语言模型 (LLM) 在推理与生成能力上取得了突破性进展，但它们本身受限于静态的上下文窗口，无法直接与真实世界进行交互。要让模型成为能够自主解决复杂任务的工程化智能体 (Agent) ，必须为其配备执行动作的工具、持久化的记忆以及安全隔离的运行边界。这就是“智能体基础设施” (Agent Harness) 的核心使命。
 - [Agent Sandbox 的演进与设计范式](08_agentic_system/agent_infra/docs/agent-sandbox-design.md) ([配套 PPT](08_agentic_system/agent_infra/docs/agent-sandbox-design.pptx)) - 探讨 Agent Sandbox 的核心设计理念，对比 OpenShell、Sandlock 等沙箱方案，揭示从“硬件级隔离”向“策略优先”演进的技术趋势。
+- [Agentic Box 介绍：开箱即用的边缘智能体网关](01_hardware_architecture/edge/agentic-box-intro.md) - 此芯 AGX 矩阵中的边端硬件形态：把 Agentic SoC、本地模型、沙箱与审计打成单盒网关，作为 Agent Infra 在现场的常驻执行环境。
 - [深度解析 Kagent：以构建 Kubernetes 运维智能体为例](08_agentic_system/agent_infra/docs/deep-dive-kagent-k8s-ops-agent.md) ([配套 PPT](08_agentic_system/agent_infra/docs/deep-dive-kagent-k8s-ops-agent.pptx)) - 深度解析 Kagent 的核心架构与工作机制，并以“构建阿里云 ACK 运维智能体”为实战案例，展示大模型与运维工具的编排。
 
 ### 10.3 实战代码与演示项目
