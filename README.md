@@ -31,6 +31,8 @@
   - [NVLink-C2C：芯片级高速互连技术详解](./01_hardware_architecture/superchips/nvlink_c2c.md)
   - [NVIDIA GB300 NVL72：机架级计算系统架构解析](./01_hardware_architecture/superchips/nvidia_gb300.md)
   - [AI 基础设施延迟金字塔](./01_hardware_architecture/performance/ai_latency_pyramid.md)
+- **视频编解码引擎（Video Codec）**
+  - [推理卡编解码方案对齐：以 NxVdec 对齐 NVIDIA NVDEC 为例](./01_hardware_architecture/video_codec/01_inference_card_decode_interface_alignment.md)
 
 ---
 
