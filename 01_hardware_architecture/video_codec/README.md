@@ -9,6 +9,7 @@ NVIDIA 通过 NVDECODE API（`cuviddec.h` + `nvcuvid.h`）把这套能力标准�
 ## 2. 文档导航
 
 - **[推理卡编解码方案对齐：以 NxVdec 对齐 NVIDIA NVDEC 为例](01_inference_card_decode_interface_alignment.md)**：完整梳理 NVIDIA NVDEC 与某自研推理卡视频解码模块（文中占位命名为 `NxVdec`）的接口对比，重点给出「`cuvidMapVideoFrame` 语义对齐」与「零拷贝」两个核心问题的四种候选方案设计、必要条件、优缺点矩阵及选型建议。编码（NVENC / NxVenc）对齐部分待补充。
+  - **[PDF 版本](01_inference_card_decode_interface_alignment.pdf)**：同一份内容的排版导出（含所有顺序图/表格），便于离线阅读与分享；Markdown 为唯一可编辑的源文件，PDF 为渲染导出产物，更新文档后需重新导出。
 
 ## 3. 相关资源
 
