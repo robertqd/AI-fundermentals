@@ -16,28 +16,43 @@
 
 #### 1.1.1 架构
 
-NVIDIA GPU 的硬件视频解码由**独立于 CUDA Core 的固定功能引擎 NVDEC** 完成，软件侧通过 NVDECODE API（`cuviddec.h` + `nvcuvid.h`）暴露为两个解耦的组件：
-
-- **Video Parser**（软件，`CUvideoparser`）：逐包吃码流（NALU/OBU），做 SPS/PPS 解析、参考帧管理、显示顺序重排，通过三个回调把关键事件推给应用。
-- **Video Decoder**（硬件，`CUvideodecoder`）：真正驱动 NVDEC 硬件完成熵解码、变换反量化、运动补偿、环路滤波，解码结果落在一组内部管理的 Decode Surface（DPB）里。
-
-两者都在应用所在的同一个 CUDA Context / 进程内直接调用驱动完成，没有额外的进程间通信开销：
+NVIDIA GPU 的硬件视频解码由**独立于 CUDA Core 的固定功能引擎 NVDEC** 完成。原始设计稿在这里给出的是 NVIDIA Video Codec SDK 官方架构图，按下图重绘：
 
 ```mermaid
-flowchart LR
-    A["应用 / Demuxer<br/>(FFmpeg 等取出裸码流)"] -->|NALU/Packet| B["CUvideoparser<br/>软件解析"]
-    B -->|"pfnSequenceCallback<br/>(首帧/分辨率变化)"| C["cuvidCreateDecoder /<br/>cuvidReconfigureDecoder"]
-    B -->|"pfnDecodePicture<br/>(一帧码流拼齐)"| D["cuvidDecodePicture"]
-    D --> E["NVDEC 硬件引擎"]
-    E --> F["Decode Surface Pool (DPB)"]
-    B -->|"pfnDisplayPicture<br/>(显示序就绪)"| G["就绪通知"]
-    F --> H["cuvidMapVideoFrame"]
-    G --> H
-    H --> I["CUDA Device Pointer<br/>(NV12/P016 等)"]
-    I --> J["CUDA Kernel / AI 推理 / NVENC"]
+flowchart TB
+    App["Client Application"]
+    Demuxer["Demuxer<br/>（非 NVIDIA 组件，如 FFmpeg）"]
+    Parser["Video Parser<br/>（可选 NVIDIA 组件）"]
+    Decoder["Video Decoder<br/>（NVIDIA 组件）"]
+    HW["GPU HW Video Decoder<br/>（NVIDIA 组件）"]
+
+    App <--> Demuxer
+    App <--> Parser
+    App <--> Decoder
+    Decoder <--> HW
+
+    subgraph Driver["Driver"]
+        Parser
+        Decoder
+    end
+
+    classDef nonnvidia fill:#2f5fa8,color:#fff,stroke:#1f3f78
+    classDef optional fill:#c9e3b0,color:#1a1a1a,stroke:#7fa860
+    classDef nvidia fill:#4e8c3f,color:#fff,stroke:#2f5c26
+    class Demuxer nonnvidia
+    class Parser optional
+    class Decoder nvidia
+    class HW nvidia
 ```
 
-这个「同进程直调驱动」的架构，是后面 1.3、1.4 节里 NxVdec 与 NVIDIA 语义差异的根本原因之一：NxVdec 的 Parser/Decoder 之间往往隔着 Host/Device 两个进程和一层 IPC（见 1.2.1），而不是像 NVIDIA 一样在同一进程内直接持有 CUDA 显存指针。
+几个关键点：
+
+- **Demuxer**（蓝色，非 NVIDIA 组件）：从容器文件/网络流中拆出裸码流（NALU/OBU），通常用 FFmpeg 等第三方库实现，NVIDIA 官方 SDK 不提供。
+- **Video Parser**（浅绿色，可选 NVIDIA 组件，软件，`CUvideoparser`）：逐包吃码流，做 SPS/PPS 解析、参考帧管理、显示顺序重排，通过三个回调把关键事件推给应用；"可选"是因为应用也可以自带解析器（如 FFmpeg 自身的 parser），只把已解析好的 `CUVIDPICPARAMS` 送给 Decoder。
+- **Video Decoder**（深绿色，NVIDIA 组件，硬件，`CUvideodecoder`）：驱动层组件，真正调用 NVDEC 硬件完成熵解码、变换反量化、运动补偿、环路滤波；Parser 与 Decoder 都运行在驱动（Driver）内，和应用同属一个 CUDA Context / 进程，应用可以直接和它们双向交互。
+- **GPU HW Video Decoder**（深绿色，NVIDIA 组件）：真正的固定功能解码硬件，Video Decoder 组件负责驱动它。
+
+这个「应用、Parser、Decoder 同进程直调驱动」的架构，是后面 1.3、1.4 节里 NxVdec 与 NVIDIA 语义差异的根本原因之一：NxVdec 的 Parser/Decoder 之间往往隔着 Host/Device 两个进程和一层 IPC（见 1.2.1），而不是像 NVIDIA 一样在同一进程内直接持有 CUDA 显存指针。
 
 #### 1.1.2 英伟达接口及示例
 
@@ -238,7 +253,7 @@ cuvidDecodePictureAsync(decoder, picParamsN1, stream);
 
 NxVdec 在**接口语义**上对齐 NVIDIA：同样拆分成软件 Parser（`nxDecVideoParser`）和硬件 Decoder（`nxDecDecoderHandle`），同样用三个回调（`pfn_sequence_callback` / `pfn_decode_picture` / `pfn_display_picture`）驱动流程。
 
-但在**实现拓扑**上，NxVdec 与 NVIDIA 有一个关键差异：NVIDIA 的 Parser 和 Decoder 都在应用所在的同一个进程内直接调驱动；而 NxVdec 的硬件解码引擎运行在独立的 Device 侧进程里，Host 侧的 `nxDec*` 调用需要经过一层 **IPC** 才能到达 Device 侧的解码后端（VDECBackend / SOC VDEC 硬件 + NPURT）：
+但在**实现拓扑**上，NxVdec 与 NVIDIA 有一个关键差异：NVIDIA 的 Parser 和 Decoder 都在应用所在的同一个进程内直接调驱动；而 NxVdec 的硬件解码引擎运行在独立的 Device 侧进程里，Host 侧的 `nxDec*` 调用需要经过一层 **IPC** 才能到达 Device 侧的解码后端（VDECBackend / SOC VDEC 硬件 + NPURT）。原文档此处仅有「对齐英伟达」一句话、没有配图，下图是根据 1.2.3 节运行视图反推整理的拓扑示意，供理解后续章节参考：
 
 ```mermaid
 flowchart LR
@@ -703,66 +718,126 @@ int main(void)
 
 #### 1.2.3 NxVdec 运行视图
 
-> 下面两张顺序图基于原始设计稿件整理重绘，聚焦关键调用链与数据搬运路径；组件命名沿用原稿（`VdecHost`/`VdecDevice`/`IPCHost`/`IPCDevice`/`VDECBackend`/`SOC VDEC` 等），细粒度的内部私有调用做了适当合并。
+> 下面两张顺序图按原始设计稿的截图逐帧核对重绘，8 个生命线（`APP`/`VdecParser`/`Vdec Host`/`IPCHost`/`IPCDevice`/`VDEC Backend`/`SOC VDEC Engine`/`NPURT`）与调用顺序均与原图保持一致。值得注意的是：原始设计稿在这两张图里，`nxDecMapVideoFrame` 的实现就已经在用 `rtImportSharedBuffer` / `rtGetShareBufferAddr` 完成 ShareBuffer → devPtr 的转换——这与 1.4 节「方案一（共进程）」的思路完全一致，说明设计稿在 1.2.3 节就已经默认基于「NPU 与 Codec 共进程」的前提来画运行视图。
 
 ##### 非零拷贝运行视图
 
-`VdecParser` 和 `VdecHost` 是对外接口模块；解码器内部自行创建 `num_output_surfaces` 张 `NxImage`，码流数据需要先在 Host 侧落到 DMA Heap，再通过 IPC 做一次 DMA 拷贝搬到 Device 侧：
+`VdecParser` 和 `Vdec Host` 是对外接口模块；解码器内部自行创建 `num_output_surfaces` 张 `NxImage`，码流数据需要先在 Host 侧落到 DMA Heap，再通过 IPC 做一次 DMA 拷贝搬到 Device 侧：
 
 ```mermaid
 sequenceDiagram
     participant APP
-    participant Parser as VdecParser（Host，软件）
-    participant Host as VDEC Host Runtime
-    participant IPC as IPC（Host↔Device）
-    participant Backend as VDEC Device Runtime / VDECBackend
-    participant SOC as SOC VDEC 硬件引擎 + NPURT
+    participant Parser as VdecParser
+    participant Host as Vdec Host
+    participant IPCHost
+    participant IPCDevice
+    participant Backend as VDEC Backend
+    participant SOC as SOC VDEC Engine
+    participant NPURT
 
-    APP->>Parser: nxDecCreateVideoParser（注册 on_sequence/on_decode/on_display）
-    APP->>Parser: nxDecParseVideoData（码流数据）
-    Parser->>APP: 回调 on_sequence(fmt)
+    Note over Parser: 设置三个回调：<br/>pfn_sequence_callback=on_sequence<br/>pfn_decode_picture=on_decode<br/>pfn_display_picture=on_display
+
+    APP->>Parser: nxDecCreateVideoParser
+    Parser-->>APP: return
+    APP->>Parser: nxDecParseVideoData
+    Parser-->>APP: return
+    Parser->>APP: on_sequence（回调）
+
     APP->>Host: nxDecCreateDecoder(num_output_surfaces=4)
-    Host->>IPC: CreateDecoder
-    IPC->>Backend: CreateDecoder
-    Backend->>Backend: CreateNxVideoDecoderEngine / Initialize
-    Backend->>Backend: CreateVideoStreamBuffer / ImportStreamBuffer
-    Backend->>Backend: 创建 N 张 NxImage 并 ImportImage
-    Backend-->>Host: 创建成功
-    Host-->>Parser: 返回 num_decode_surfaces
+    Host->>IPCHost: GetHostTransport
+    IPCHost->>IPCDevice: connect
+    IPCDevice-->>IPCHost: return
+    IPCHost-->>Host: return
+    Host->>IPCHost: CreateDecoder
+    IPCHost->>IPCDevice: CreateDecoder
+    IPCDevice->>Backend: CreateDecoder
+    Backend->>SOC: CreateNxVideoDecoderEngine
+    SOC-->>Backend: return
+    Backend->>SOC: Initialize
+    SOC-->>Backend: return
+    Backend->>SOC: CreateVideoStreamBuffer
+    SOC-->>Backend: return
+    Backend->>SOC: ImportStreamBuffer
+    SOC-->>Backend: return
+    Backend->>SOC: new num_output_surface × NxImage
+    SOC-->>Backend: return
+    Backend->>SOC: ImportImage
+    SOC-->>Backend: return
+    Backend-->>IPCDevice: return
+    IPCDevice-->>IPCHost: return
+    IPCHost-->>Host: return
+    Host-->>APP: return
 
-    Parser->>APP: 回调 on_decode(pic_params)
+    Parser->>APP: on_decode（回调）
     APP->>Host: nxDecDecodePicture(curr_pic_idx, stream_data)
-    Host->>Host: 1. alloc host dma heap<br/>2. memcpy(host_buf → dma_heap)
-    Host->>IPC: streamDma(desc, size, offset) + DecodePicture
-    IPC->>Backend: HandleStreamDma
-    Backend->>Backend: AcquireStreamBuffer
-    Backend->>Backend: DMA COPY(host_dma_buffer → device_dma_buffer)
+    Host->>Host: 1. alloc host dma heap<br/>2. memcpy(host, dma_heap)
+    Host->>IPCHost: streamDma(desc, size, offset)
+    IPCHost->>IPCDevice: streamDma
+    IPCDevice->>Backend: HandleStreamDma
+    Backend->>Backend: store stream dma info
+    Backend-->>IPCDevice: return
+    IPCDevice-->>IPCHost: return
+    IPCHost-->>Host: return
+
+    Host->>IPCHost: DecodePicture
+    IPCHost->>IPCDevice: DecodePicture
+    IPCDevice->>Backend: AcquireStreamBuffer
+    Backend->>SOC: GetFreeStream
+    SOC-->>Backend: return
+    Backend->>Backend: DMA COPY(host dma buffer, device dma buffer)
+    Backend-->>IPCDevice: return
+    IPCDevice->>Backend: FeedStream
     Backend->>SOC: FeedStream
+    SOC-->>Backend: return
+    Backend-->>IPCDevice: return
+    IPCDevice-->>IPCHost: return
+    IPCHost-->>Host: return
+    Host-->>APP: return
+
     loop 解码直到有帧就绪
         SOC->>SOC: GetImage
     end
-    SOC-->>Backend: notify（帧就绪）
-    Backend-->>Parser: 触发显示序回调
-    Parser->>APP: 回调 on_display(picture_index, pts)
+    SOC-->>Backend: notify
+    Backend->>Backend: store image info
+    Parser->>APP: on_display（回调，帧就绪通知）
 
-    APP->>Host: nxDecMapVideoFrame(picture_index)
-    Host->>IPC: MapVideoFrame
-    IPC->>Backend: HandleMapVideoFrame
-    Backend->>Backend: findImageViaPicIndex
-    Backend-->>Host: devPtr, pitch
-    Host-->>APP: devPtr（期望为 NPU IOVA）, pitch
+    APP->>Host: nxDecMapVideoFrame(picture_index, pDevPtr)
+    Host->>IPCHost: MapVideoFrame
+    IPCHost->>IPCDevice: MapVideoFrame
+    IPCDevice->>Backend: HandleMapVideoFrame
+    Backend->>Backend: find image via pic index
+    Backend->>NPURT: rtImportSharedBuffer(ShareBuffer, devPtr)
+    NPURT-->>Backend: return
+    Backend-->>IPCDevice: return
+    IPCDevice-->>IPCHost: return
+    IPCHost-->>Host: return
+    Host-->>APP: return（devPtr, pitch）
 
     APP->>APP: 推理 / D2D / D2H
     APP->>Host: nxDecUnmapVideoFrame(devPtr)
-    Host->>IPC: UnmapVideoFrame
-    IPC->>Backend: HandleUnmapVideoFrame
-    Backend->>Backend: ReturnImage
+    Host->>IPCHost: UnmapVideoFrame
+    IPCHost->>IPCDevice: UnmapVideoFrame
+    IPCDevice->>Backend: HandleUnmapVideoFrame
+    Backend->>SOC: ReturnImage
+    SOC-->>Backend: return
+    Backend-->>IPCDevice: return
+    IPCDevice-->>IPCHost: return
+    IPCHost-->>Host: return
+    Host-->>APP: return
 
     APP->>Parser: nxDecDestroyVideoParser
+    Parser-->>APP: return
     APP->>Host: nxDecDestroyDecoder
-    Host->>IPC: DestroyDecoder
-    IPC->>Backend: HandleDestroyDecoder
-    Backend->>Backend: Release
+    Host->>IPCHost: DestroyDecoder
+    IPCHost->>IPCDevice: DestroyDecoder
+    IPCDevice->>Backend: HandleDestroyDecoder
+    Backend->>SOC: DestroyDecoder
+    SOC->>SOC: Release
+    SOC-->>Backend: return
+    Backend-->>IPCDevice: return
+    IPCDevice-->>IPCHost: return
+    IPCHost-->>Host: return
+    Host-->>APP: return
 ```
 
 ##### 零拷贝运行视图
@@ -772,42 +847,99 @@ sequenceDiagram
 ```mermaid
 sequenceDiagram
     participant APP
-    participant Parser as VdecParser（Host，软件）
-    participant Host as VDEC Host Runtime
-    participant IPC as IPC（Host↔Device）
-    participant Backend as VDEC Device Runtime / VDECBackend
+    participant Parser as VdecParser
+    participant Host as Vdec Host
+    participant IPCHost
+    participant IPCDevice
+    participant Backend as VDEC Backend
+    participant SOC as SOC VDEC Engine
+    participant NPURT
 
-    APP->>Parser: nxDecCreateVideoParser（注册三个回调）
-    APP->>Parser: nxDecParseVideoData（码流数据）
-    Parser->>APP: 回调 on_sequence(fmt)
+    Note over Parser: 设置三个回调：<br/>pfn_sequence_callback=on_sequence<br/>pfn_decode_picture=on_decode<br/>pfn_display_picture=on_display
+
+    APP->>Parser: nxDecCreateVideoParser
+    Parser-->>APP: return
+    APP->>Parser: nxDecParseVideoData
+    Parser-->>APP: return
+    Parser->>APP: on_sequence（回调）
+
     APP->>Host: nxDecCreateDecoder(num_decode_surfaces=0)
-    Host->>IPC: CreateDecoder
-    IPC->>Backend: CreateDecoder
-    Note over Backend: num_decode_surfaces=0，<br/>VDEC 内部不创建 frame ShareBuffer
-    Backend-->>Host: 创建成功（无内部帧缓冲）
+    Host->>IPCHost: GetHostTransport
+    IPCHost->>IPCDevice: connect
+    IPCDevice-->>IPCHost: return
+    IPCHost-->>Host: return
+    Host->>IPCHost: CreateDecoder
+    IPCHost->>IPCDevice: CreateDecoder
+    IPCDevice->>Backend: CreateDecoder
+    Backend->>SOC: CreateNxVideoDecoderEngine
+    SOC-->>Backend: return
+    Backend->>SOC: Initialize
+    SOC-->>Backend: return
+    Backend->>SOC: CreateVideoStreamBuffer
+    SOC-->>Backend: return
+    Backend->>SOC: ImportStreamBuffer
+    SOC-->>Backend: return
+    Backend-->>IPCDevice: return
+    IPCDevice-->>IPCHost: return
+    IPCHost-->>Host: return
+    Host-->>APP: return
 
-    Note over APP: 这里做了简化，实际为：<br/>Host rtMalloc → IPC → Device rtMalloc
-    APP->>APP: rtMalloc(&devPtr, size)
+    APP->>NPURT: rtMalloc(devPtr, size)
+    Note over APP,IPCDevice: 这里做了简化，实际为：<br/>Host rtMalloc → IPC → Device rtMalloc
+    NPURT-->>APP: return
+
     APP->>Host: nxDecRegisterDecodeSurfaces(devPtr)
-    Host->>IPC: RegisterDecodeSurfaces(devPtr)
-    IPC->>Backend: HandleRegisterDecodeSurfaces
-    Backend->>Backend: rtGetShareBuffer(devPtr) → ShareBuffer
-    Backend->>Backend: 1. 依据 ShareBuffer 创建 NxImage<br/>2. 将 NxImage 导入 VDEC<br/>3. 记录映射表 ShareBuffer→devPtr
-    Backend-->>Host: 注册成功
+    Host->>IPCHost: RegisterDecodeSurfaces
+    IPCHost->>IPCDevice: RegisterDecodeSurfaces
+    IPCDevice->>Backend: HandleRegisterDecodeSurfaces
+    Backend->>NPURT: rtGetShareBufferAddr
+    NPURT-->>Backend: return
+    Backend->>Backend: new NxImage with sharebuffer
+    Backend->>SOC: ImportImage
+    SOC-->>Backend: return
+    Backend-->>IPCDevice: return
+    IPCDevice-->>IPCHost: return
+    IPCHost-->>Host: return
+    Host-->>APP: return
 
-    Parser->>APP: 回调 on_decode(pic_params)
-    APP->>Host: nxDecDecodePicture(curr_pic_idx, stream_data)
-    Host->>IPC: DecodePicture（流程同非零拷贝路径）
-    IPC->>Backend: 解码，结果直接写入 APP 分配的 devPtr 对应帧
-    Backend-->>Parser: 触发显示序回调
-    Parser->>APP: 回调 on_display(picture_index, pts)
+    Note over APP,SOC: 解码（流程与非零拷贝路径一致，此处省略）
 
-    APP->>Host: nxDecMapVideoFrame(picture_index)
-    Host->>IPC: MapVideoFrame
-    IPC->>Backend: 查映射表 ShareBuffer→devPtr
-    Backend-->>APP: 返回 devPtr（与 APP 自己 rtMalloc 出来的地址一致，零拷贝）
+    Parser->>APP: on_display（回调，帧就绪通知）
+    APP->>Host: nxDecMapVideoFrame(picture_index, pDevPtr)
+    Host->>IPCHost: MapVideoFrame
+    IPCHost->>IPCDevice: MapVideoFrame
+    IPCDevice->>Backend: HandleMapVideoFrame
+    Backend->>Backend: find image via pic index
+    Backend-->>IPCDevice: return
+    IPCDevice-->>IPCHost: return
+    IPCHost-->>Host: return
+    Host-->>APP: return（devPtr 与 APP 自己 rtMalloc 出来的地址一致）
 
-    APP->>APP: 推理 / D2D / D2H（直接复用自己申请的这块显存）
+    APP->>APP: 推理 / D2D / D2H
+    APP->>Host: nxDecUnmapVideoFrame(devPtr)
+    Host->>IPCHost: UnmapVideoFrame
+    IPCHost->>IPCDevice: UnmapVideoFrame
+    IPCDevice->>Backend: HandleUnmapVideoFrame
+    Backend->>SOC: ReturnImage
+    SOC-->>Backend: return
+    Backend-->>IPCDevice: return
+    IPCDevice-->>IPCHost: return
+    IPCHost-->>Host: return
+    Host-->>APP: return
+
+    APP->>Parser: nxDecDestroyVideoParser
+    Parser-->>APP: return
+    APP->>Host: nxDecDestroyDecoder
+    Host->>IPCHost: DestroyDecoder
+    IPCHost->>IPCDevice: DestroyDecoder
+    IPCDevice->>Backend: HandleDestroyDecoder
+    Backend->>SOC: DestroyDecoder
+    SOC->>SOC: Release
+    SOC-->>Backend: return
+    Backend-->>IPCDevice: return
+    IPCDevice-->>IPCHost: return
+    IPCHost-->>Host: return
+    Host-->>APP: return
 ```
 
 ---
@@ -865,22 +997,28 @@ sequenceDiagram
 sequenceDiagram
     participant APP
     participant Host as VDEC Host Runtime
+    participant IPC
     participant Dev as VDEC Device Runtime
-    participant NPU as NPU Device Runtime（同进程）
+    participant NPU as NPU Device Runtime
 
     APP->>Host: nxDecCreateDecoder(num_output_surfaces=N)
-    Host->>Dev: dispatch（经 IPC）
-    Dev->>Dev: new NxImage / ShareBuffer
-    Dev->>NPU: rtImportSharedBuffer(sharedBuffer, &devPtr)
-    NPU-->>Dev: devPtr
-    Dev->>Dev: 保存映射表 index/sharebuffer→devPtr
-    Dev-->>Host: return
+    Host->>IPC: dispatch
+    IPC->>Dev: nxDecCreateDecoder(num_output_surfaces=N)
+    Dev->>Dev: new NxImage/ShareBuffer
+    Dev->>NPU: rtImportSharedBuffer(void* sharedBuffer, void** devPtr)
+    NPU-->>Dev: return
+    Dev->>Dev: 保存 sharebuffer 与 devptr 映射关系<br/>map(index/sharebuffer, devptr)
+    Dev-->>IPC: return
+    IPC-->>Host: return
+    Host-->>APP: return
 
-    APP->>Host: nxDecMapVideoFrame(pic_idx, &pDevPtr)
-    Host->>Dev: dispatch（经 IPC）
-    Dev->>Dev: 查 map，取出 devPtr
-    Dev-->>Host: devPtr
-    Host-->>APP: devPtr
+    APP->>Host: nxDecMapVideoFrame(int pic_idx, unsigned long long *pDevPtr)
+    Host->>IPC: dispatch
+    IPC->>Dev: nxDecMapVideoFrame
+    Dev->>Dev: 查询 map，拿到 devptr
+    Dev-->>IPC: return
+    IPC-->>Host: return
+    Host-->>APP: return
 ```
 
 **必要条件**：
@@ -893,27 +1031,41 @@ sequenceDiagram
 sequenceDiagram
     participant APP
     participant Host as VDEC Host Runtime
+    participant IPC
     participant Dev as VDEC Device Runtime
-    participant NPU as NPU Device Runtime（同进程）
+    participant NPU as NPU Device Runtime
 
-    Note over APP: 这里做了简化，实际为：<br/>Host rtMalloc → IPC → Device rtMalloc
-    APP->>APP: rtMalloc(&devPtr, size)
-    APP->>Host: nxDecCreateDecoder(num_decode_surfaces=0)
-    Host->>Dev: dispatch
-    Note over Dev: num_decode_surfaces=0，<br/>VDEC 内部不创建 frame ShareBuffer
-    Dev-->>Host: return
+    APP->>Host: nxDecCreateDecoder(num_output_surfaces=0)
+    Host->>IPC: dispatch
+    IPC->>Dev: nxDecCreateDecoder(num_decode_surfaces=0)
+    Note over Dev: num_decode_surfaces 为 0，<br/>VDEC 内部不会创建 frame sharebuffer
+    Dev-->>IPC: return
+    IPC-->>Host: return
+    Host-->>APP: return
 
-    APP->>Host: nxDecRegisterDecodeSurfaces(devPtr)
-    Host->>Dev: dispatch
-    Dev->>NPU: rtGetShareBuffer(devPtr, &sharebuffer)
-    NPU-->>Dev: sharebuffer
-    Dev->>Dev: 1. 依据 sharebuffer 创建 NxImage<br/>2. 将 NxImage 导入 VDEC<br/>3. 记录映射表 sharebuffer→devPtr
-    Dev-->>Host: return
+    APP->>NPU: rtMalloc(void** devPtr, size_t size)
+    Note over APP,Dev: 这地方做了简化，实际为：<br/>Host rtMalloc ---> IPC ---> Device rtMalloc
+    NPU-->>APP: return
 
-    APP->>Host: nxDecMapVideoFrame(pic_idx, &pDevPtr)
-    Host->>Dev: dispatch
-    Dev->>Dev: 查 map，得到 devPtr
-    Dev-->>Host: devPtr（与 APP 自己申请的地址一致）
+    APP->>Host: nxDecRegisterDecodeSurfaces(params:devptr)
+    Host->>IPC: dispatch
+    IPC->>Dev: nxDecRegisterDecodeSurfaces(params:devptr)
+    Dev->>NPU: rtGetShareBuffer(void* devPtr, void* sharebuffer)
+    NPU-->>Dev: return
+    Dev->>Dev: 1. 根据 sharebuffer，创建 nxImage<br/>2. 将 nxImage 导入 VDEC<br/>3. map(sharebuffer, devPtr)
+    Dev-->>IPC: return
+    IPC-->>Host: return
+    Host-->>APP: return
+
+    Note over APP,Dev: 解码
+
+    APP->>Host: nxDecMapVideoFrame(int pic_idx, unsigned long long *pDevPtr)
+    Host->>IPC: dispatch
+    IPC->>Dev: nxDecMapVideoFrame
+    Dev->>Dev: 查询 map，得到 devptr
+    Dev-->>IPC: return
+    IPC-->>Host: return
+    Host-->>APP: return
 ```
 
 **必要条件**：
@@ -923,7 +1075,7 @@ sequenceDiagram
 
 #### 方案二：Device 侧 NPU 与 Codec 非共进程
 
-**核心思路**：不要求共进程，VDEC 与 NPU 各自的 Device Runtime 通过标准的全局 `fd`/`ipc_id` 传递显存所有权，而不是直接互认对方的内部对象。VDEC 创建完 `ShareBuffer` 后导出一个全局 `fd`/`ipc_id`；NPU Device Runtime 新增 `rtImportDmaFd(fd/ipc_id, &devPtr)`，把这个 `fd` 映射成本地合法的 NPU IOVA。整个转换过程封装在 VDEC 内部，应用侧调用体验与 NVIDIA 保持一致。
+**核心思路**：不要求共进程，VDEC 与 NPU 各自的 Device Runtime 通过标准的全局 `fd`/`ipc_id` 传递显存所有权，而不是直接互认对方的内部对象。VDEC 创建完 `ShareBuffer` 后导出一个全局 `fd`/`ipc_id`；VDEC Host Runtime 在拿到这个 `fd`/`ipc_id` 后**立即**调用 NPU Device Runtime 新增的 `rtImportDmaFd(fd/ipc_id, &devPtr)`，把它映射成本地合法的 NPU IOVA 并缓存下来——这个映射发生在 `nxDecCreateDecoder` 返回之前，而不是等到 `nxDecMapVideoFrame` 才做，因此 `nxDecMapVideoFrame` 本身只是一次缓存查表，足够轻量。整个转换过程封装在 VDEC Host Runtime 内部，应用侧调用体验与 NVIDIA 保持一致。
 
 **`cuvidMapVideoFrame` 语义实现**：
 
@@ -931,50 +1083,70 @@ sequenceDiagram
 sequenceDiagram
     participant APP
     participant Host as VDEC Host Runtime
+    participant IPC
     participant Dev as VDEC Device Runtime
-    participant NPU as NPU Device Runtime（独立进程）
+    participant NPU as NPU Device Runtime
 
     APP->>Host: nxDecCreateDecoder(num_output_surfaces=N)
-    Host->>Dev: dispatch（经 IPC）
-    Dev->>Dev: new NxImage / ShareBuffer，导出全局 fd/ipc_id
-    Dev-->>Host: return
+    Host->>IPC: dispatch
+    IPC->>Dev: nxDecCreateDecoder(num_output_surfaces=N)
+    Dev->>Dev: new NxImage/ShareBuffer
+    Dev-->>IPC: return
+    Note over IPC,Host: 返回全局 fd/ipc_id
+    IPC-->>Host: return
 
-    APP->>Host: nxDecMapVideoFrame(pic_idx, &pDevPtr)
-    Host->>Host: rtImportDmaFd(fd/ipc_id, &devPtr)
-    Note over Host,NPU: Host rtImportDmaFd → IPC → Device rtImportDmaFd
-    Host->>Host: 保存映射表 fd/index→devPtr（首次映射后可复用）
-    Host-->>APP: devPtr
+    Host->>NPU: rtImportDmaFd(fd/ipc_id, devPtr)
+    Note over Host,Dev: 这里做了简化，实际为：<br/>Host rtImportDmaFd ---> IPC ---> Device rtImportDmaFd<br/>根据全局 fd，映射出 devptr
+    NPU-->>Host: return
+    Host->>Host: 保存 map(fd/index, devptr)
+    Host-->>APP: return
+
+    Note over APP,Dev: 解码
+
+    APP->>Host: nxDecMapVideoFrame(int pic_idx, unsigned long long *pDevPtr)
+    Host->>Host: 查询 map，返回 devptr
+    Host-->>APP: return
 ```
 
 **必要条件**：NPU Device 侧新增 `rtImportDmaFd(fd/ipc_id, &devPtr)`，实现根据全局 `fd`/`ipc_id` 映射出 `devPtr`。
 
-**零拷贝实现**：APP 用 `num_decode_surfaces=0` 创建解码器，自行 `rtMalloc`，再用 `nxDecRegisterDecodeSurfaces` 携带 `dmaFd`/`ipc_id`（而非 `devPtr`）完成注册；VDEC Device Runtime 根据 `fd` 创建 `NxImage` 并导入解码器：
+**零拷贝实现**：APP 用 `num_decode_surfaces=0` 创建解码器，自行 `rtMalloc`；注册环节由 **VDEC Host Runtime** 主动调用 NPU Device Runtime 新增的 `rtGetDmaFd`，把 APP 的 `devPtr` 转成全局 `fd`/`ipc_id` 后再转发给 VDEC Device Runtime——这一步同样由 VDEC 内部封装完成，APP 侧只感知到 `devPtr`：
 
 ```mermaid
 sequenceDiagram
     participant APP
     participant Host as VDEC Host Runtime
+    participant IPC
     participant Dev as VDEC Device Runtime
-    participant NPU as NPU Device Runtime（独立进程）
+    participant NPU as NPU Device Runtime
 
-    APP->>APP: rtMalloc(&devPtr, size)
-    APP->>NPU: rtGetDmaFd(devPtr, &fd)
-    NPU-->>APP: fd
-    APP->>Host: nxDecCreateDecoder(num_decode_surfaces=0)
-    Host->>Dev: dispatch
-    Note over Dev: num_decode_surfaces=0，<br/>VDEC 内部不创建 frame ShareBuffer
-    Dev-->>Host: return
+    APP->>Host: nxDecCreateDecoder(num_output_surfaces=0)
+    Host->>IPC: dispatch
+    IPC->>Dev: nxDecCreateDecoder(num_decode_surfaces=0)
+    Note over Dev: num_decode_surfaces 为 0，<br/>VDEC 内部不会创建 frame sharebuffer
+    Dev-->>IPC: return
+    IPC-->>Host: return
+    Host-->>APP: return
 
-    APP->>Host: nxDecRegisterDecodeSurfaces(fd)
-    Host->>Dev: DecRegisterSurfaces{dmaFd/ipc_id}
-    Dev->>Dev: 1. 根据 fd 创建 NxImage<br/>2. 将 NxImage 导入 VDEC<br/>3. 记录映射表 sharebuffer→devPtr
-    Dev-->>Host: return
+    APP->>NPU: rtMalloc(void** devPtr, size_t size)
+    Note over APP,Dev: 这地方做了简化，实际为：<br/>Host rtMalloc ---> IPC ---> Device rtMalloc
+    NPU-->>APP: return
 
-    APP->>Host: nxDecMapVideoFrame(pic_idx, &pDevPtr)
-    Host->>Dev: dispatch
-    Dev->>Dev: 查 map，得到 devPtr
-    Dev-->>Host: devPtr
-    Host-->>APP: devPtr（与 APP 自己申请的地址一致）
+    APP->>Host: nxDecRegisterDecodeSurfaces(params:devptr)
+    Host->>NPU: rtGetDmaFd(void* devPtr, dmaFd/ipc_id)
+    NPU-->>Host: return
+    Host->>IPC: dispatch
+    IPC->>Dev: DecRegisterSurfaces(dmaFd/ipc_id)
+    Dev->>Dev: 1. 根据 fd，创建 nxImage<br/>2. 将 nxImage 导入 VDEC<br/>3. map(sharebuffer, devPtr)
+    Dev-->>IPC: return
+    IPC-->>Host: return
+    Host-->>APP: return
+
+    Note over APP,Dev: 解码
+
+    APP->>Host: nxDecMapVideoFrame(int pic_idx, unsigned long long *pDevPtr)
+    Host->>Host: 查询 map，得到 devptr
+    Host-->>APP: return
 ```
 
 **必要条件**：
@@ -987,58 +1159,73 @@ sequenceDiagram
 
 **`cuvidMapVideoFrame` 语义实现**：
 
+> 原文档中，「必要条件」文字描述写的是「NPU **Host** 侧需要提供 `rtImportDmaFd` 函数」，但配图里这一步的生命线画的是「NPU **Device** Runtime」——这处 Host/Device 命名不一致是原始设计稿自身的表述问题，此处按配图的生命线命名重绘，特此说明以免误解。
+
 ```mermaid
 sequenceDiagram
     participant APP
     participant Host as VDEC Host Runtime
+    participant IPC
     participant Dev as VDEC Device Runtime
-    participant NPU as NPU Host Runtime
+    participant NPU as NPU Device Runtime
 
     APP->>Host: nxDecCreateDecoder(num_output_surfaces=N)
-    Host->>Dev: dispatch（经 IPC）
-    Dev->>Dev: new NxImage / ShareBuffer
-    Dev-->>Host: return
+    Host->>IPC: dispatch
+    IPC->>Dev: nxDecCreateDecoder(num_output_surfaces=N)
+    Dev->>Dev: new NxImage/ShareBuffer
+    Dev-->>IPC: return
+    IPC-->>Host: return
+    Host-->>APP: return
 
-    Host->>Host: 解码
-    APP->>Host: nxDecMapVideoFrame(pic_idx, &pDevPtr)
-    Host-->>APP: pDevPtr（实际是 ShareBuffer 的全局 dmafd）
+    Note over APP,Dev: 解码
 
-    Note over APP,NPU: 需要应用自己再映射一次，<br/>将 dmafd 映射为 NPU IOVA
-    APP->>NPU: rtImportDmaFd(dmafd, &devptr)
-    NPU-->>APP: devptr
+    APP->>Host: nxDecMapVideoFrame(int pic_idx, unsigned long long *pDevPtr)
+    Host-->>APP: return
+    Note over APP: 这里得到的 devptr 实际是<br/>ShareBuffer 的全局 dmafd
+
+    APP->>NPU: rtImportDmaFd(dmafd, devptr)
+    NPU-->>APP: return
+    Note over APP: 需要映射一次，<br/>将 dmafd 映射为 NPU IOVA
+
     APP->>APP: 推理
 ```
 
 **必要条件**：NPU Host 侧新增 `rtImportDmaFd(fd, &devptr)`，实现根据全局 `fd` 得到 `devptr`；或者 NPU 能够直接根据 `fd` 完成推理，无需显式转换出 `devptr`。
 
-**零拷贝实现**：APP 自行 `rtMalloc`，通过 `rtGetDmaFd` 导出全局 `fd`，再用 `nxDecRegisterDecodeSurfaces(fd)` 注册给 VDEC；`nxDecMapVideoFrame` 拿到的仍然是这个 `fd`：
+**零拷贝实现**：与方案二的零拷贝路径最大的区别在于——这里是 **APP 自己**直接调用 `rtMalloc` 和 `rtGetDmaFd`（都是对 NPU Device Runtime 的直接调用），VDEC Host Runtime 全程不掺和这两步，只在最后的 `nxDecRegisterDecodeSurfaces(fd)` 里接收 APP 已经准备好的 `fd`：
 
 ```mermaid
 sequenceDiagram
     participant APP
     participant Host as VDEC Host Runtime
+    participant IPC
     participant Dev as VDEC Device Runtime
     participant NPU as NPU Device Runtime
 
-    Note over APP: 这里做了简化，实际为：<br/>Host rtMalloc → IPC → Device rtMalloc
-    APP->>APP: rtMalloc(&devPtr, size)
-    APP->>NPU: rtGetDmaFd(devPtr, &fd)
-    NPU-->>APP: fd
-    APP->>Host: nxDecCreateDecoder(num_decode_surfaces=0)
-    Host->>Dev: dispatch
-    Note over Dev: num_decode_surfaces=0，<br/>VDEC 内部不创建 frame ShareBuffer
-    Dev-->>Host: return
+    APP->>Host: nxDecCreateDecoder(num_output_surfaces=0)
+    Host->>IPC: dispatch
+    IPC->>Dev: nxDecCreateDecoder(num_decode_surfaces=0)
+    Note over Dev: num_decode_surfaces 为 0，<br/>VDEC 内部不会创建 frame sharebuffer
+    Dev-->>IPC: return
+    IPC-->>Host: return
+    Host-->>APP: return
 
-    APP->>Host: nxDecRegisterDecodeSurfaces(fd)
-    Host->>Dev: DecRegisterSurfaces{dmaFd}
-    Dev->>Dev: 1. 根据 fd 创建 NxImage<br/>2. 将 NxImage 导入 VDEC<br/>3. 记录映射表 sharebuffer→devPtr
-    Dev-->>Host: return
+    APP->>NPU: rtGetDmaFd(void* devPtr, dmaFd)
+    NPU-->>APP: return
 
-    Host->>Host: 解码
-    APP->>Host: nxDecMapVideoFrame(pic_idx, &pDevPtr)
-    Host->>Dev: 查 map，得到 devPtr
-    Dev-->>Host: devPtr
-    Host-->>APP: pDevPtr（仍是全局 fd，需 APP 再转换）
+    APP->>Host: nxDecRegisterDecodeSurfaces(params:dmaFd)
+    Host->>IPC: dispatch
+    IPC->>Dev: DecRegisterSurfaces(dmaFd)
+    Dev->>Dev: 1. 根据 fd，创建 nxImage<br/>2. 将 nxImage 导入 VDEC<br/>3. map(sharebuffer, devPtr)
+    Dev-->>IPC: return
+    IPC-->>Host: return
+    Host-->>APP: return
+
+    Note over APP,Dev: 解码
+
+    APP->>Host: nxDecMapVideoFrame(int pic_idx, unsigned long long *pDevPtr)
+    Host->>Host: 查询 map，得到 devptr
+    Host-->>APP: return
 ```
 
 **必要条件**：NPU Host 侧新增 `rtGetDmaFd(devptr, &fd)`；修改 `ShareBuffer`/`NxImage`，支持根据 `fd` 构造对象。
