@@ -106,7 +106,15 @@ Blackwell 代际实际上重新定义了“一台 AI 机器”的边界：
 
 ---
 
-## 5. 可视化参考图（Visual Reference）
+## 6. 视频编解码引擎（Video Codec）
+
+除了通用计算单元，AI 加速卡上往往还内置了独立于计算核心的固定功能视频编解码引擎——解码结果直接落在设备内存里，避免"CPU 解码、加速卡推理"这条路径反复占用 PCIe 带宽。NVIDIA 通过 NVDECODE API 把这套能力标准化，是自研 AI 推理卡对齐生态时的重要参考对象。
+
+- **[推理卡编解码方案对齐：以 NxVdec 对齐 NVIDIA NVDEC 为例](video_codec/01_inference_card_decode_interface_alignment.md)**：NVIDIA NVDEC 与自研推理卡视频解码模块的接口对比，以及零拷贝与显存互操作的方案设计。
+
+---
+
+## 7. 可视化参考图（Visual Reference）
 
 前面几节涉及到的拓扑概念比较抽象，这里用一组统一风格的示意图把它们整合起来，形成一张可以随时翻阅的“硬件拓扑地图”，涵盖：
 
@@ -115,13 +123,13 @@ Blackwell 代际实际上重新定义了“一台 AI 机器”的边界：
 - NUMA 亲和性对 GPU 访存性能的影响；
 - `nvidia-smi topo -m` 输出的 GPU↔GPU 对等关系六级分类：X / PIX / PXB / PHB / NODE / SYS。
 
-### 5.1 GPU ↔ CPU 数据路径示意
+### 7.1 GPU ↔ CPU 数据路径示意
 
 下图描绘了单机场景下 GPU 访问主机（CPU）内存时所经过的完整物理路径，涵盖 GPU DMA 引擎、PCIe Endpoint、PCIe Switch（可选）、CPU Root Complex、Memory Controller 直至 System DRAM 的逐级流转过程。
 
 ![GPU ↔ CPU 数据路径](assets/gpu_to_cpu_data_path.png)
 
-### 5.2 GPU 物理数据路径全景图
+### 7.2 GPU 物理数据路径全景图
 
 下图为整合注释版的 GPU 物理数据路径全景图，覆盖以下四个维度：
 
